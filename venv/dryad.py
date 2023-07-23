@@ -14,7 +14,10 @@ SUFFIXES = '.nwk,.newick,.nex,.nexus,.tre,.tree,.treefile'.split(',')
 OUT_FOLDER = Path(r'R:\dryad_out')
 if not OUT_FOLDER.exists():
     OUT_FOLDER.mkdir()
-q = 'Contrasting physiological traits of shade tolerance in Pinus and Podocarpaceae native to a tropical Vietnamese forest: Insight from an aberrant flat-leaved pine'
+
+q = ('Contrasting physiological traits of shade tolerance in Pinus and '
+     'Podocarpaceae native to a tropical Vietnamese forest: Insight from '
+     'an aberrant flat-leaved pine')
 
 
 def get_dryad_url(identifier='doi:10.5061/dryad.1g1jwstss') -> str:
@@ -55,18 +58,20 @@ async def download(session: aiohttp.ClientSession, dataset_url: str) -> (
 
 def filter_tree_file(file_bin: bytes):
     # filter tree files from zip
+    # extract trees into OUT_FOLDER/
     tree_files = list()
     with ZipFile(io.BytesIO(file_bin), 'r') as z:
-        file_list = z.namelist()
-        for file in file_list:
+        for file in z.namelist():
             suffix = Path(file.lower()).suffix
             if suffix in SUFFIXES:
                 tree_files.append(file)
+                z.extract(file, path=OUT_FOLDER)
             else:
                 print(file, 'is not tree file')
     # todo: extract file
     # todo: handle folder in zip
     print(tree_files)
+    return tree_files
 
 
 async def main():
@@ -83,5 +88,6 @@ async def main():
         else:
             print('Got', dataset_url)
         filter_tree_file(bin_data)
+
 
 asyncio.run(main())
