@@ -1,9 +1,11 @@
 import aiohttp
+import aiofile
 import asyncio
 from urllib.request import quote
 import json
 
 server = 'https://datadryad.org/api/v2'
+MAX_SIZE = 1024*1024*100
 q = 'Contrasting physiological traits of shade tolerance in Pinus and Podocarpaceae native to a tropical Vietnamese forest: Insight from an aberrant flat-leaved pine'
 
 
@@ -15,11 +17,9 @@ def get_dryad_url(identifier='doi:10.5061/dryad.1g1jwstss') -> str:
     return doi_url
 
 
-def download():
-    pass
 async def search_title(session:aiohttp.ClientSession, title: str) -> (str, int):
     search_url = f'{server}/search'
-    params = {'q': title, 'page': 1, 'per_page': 1}
+    params = {'q': title, 'page': 1, 'per_page': 2}
     async with session.get(search_url, params=params) as resp:
         if not resp.ok:
             raise Exception(resp.status)
@@ -35,15 +35,25 @@ async def search_title(session:aiohttp.ClientSession, title: str) -> (str, int):
         return identifier, size
 
 
+async def download(session: aiohttp.ClientSession, dataset_url: str,
+                   filename: str) -> (bool, str):
+    download_url = f'{dataset_url}/download'
+    async with session.get(url) as resp:
+        if not resp.ok:
+            return False, ''
+        bin = await resp.content()
+    async with aiofile.async_open(filename, 'wb') as handle:
+        handle.write(bin)
+    return True, filename
+
+
 async def main():
     async with aiohttp.ClientSession() as session:
         identifier, size = await search_title(session, q)
+        if size > MAX_SIZE:
+            print(identifier, 'too big', size, 'bp')
+            return
         dataset_url = get_dryad_url(identifier)
-        async with session.get(dataset_url) as resp:
-            if not resp.ok:
-                raise Exception(f'{resp.status}, {url}')
-            json_ = await resp.json()
-            print(json_)
-            # print(pokemon['name'])
+        filename = await download(session, dataset_url, filename)
 
 asyncio.run(main())
