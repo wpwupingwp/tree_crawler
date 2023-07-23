@@ -1,11 +1,19 @@
+from pathlib import Path
+from urllib.request import quote
+from zipfile import ZipFile, ZipInfo
+import asyncio
+import io
+import json
+
 import aiohttp
 import aiofile
-import asyncio
-from urllib.request import quote
-import json
 
 server = 'https://datadryad.org/api/v2'
 MAX_SIZE = 1024*1024*100
+SUFFIXES = '.nwk,.newick,.nex,.nexus,.tre,.tree,.treefile'.split(',')
+OUT_FOLDER = Path(r'R:\dryad_out')
+if not OUT_FOLDER.exists():
+    OUT_FOLDER.mkdir()
 q = 'Contrasting physiological traits of shade tolerance in Pinus and Podocarpaceae native to a tropical Vietnamese forest: Insight from an aberrant flat-leaved pine'
 
 
@@ -35,16 +43,30 @@ async def search_title(session:aiohttp.ClientSession, title: str) -> (str, int):
         return identifier, size
 
 
-async def download(session: aiohttp.ClientSession, dataset_url: str,
-                   filename: str) -> (bool, str):
+async def download(session: aiohttp.ClientSession, dataset_url: str) -> (
+        bool, bytes):
     download_url = f'{dataset_url}/download'
-    async with session.get(url) as resp:
+    async with session.get(download_url) as resp:
         if not resp.ok:
-            return False, ''
-        bin = await resp.content()
-    async with aiofile.async_open(filename, 'wb') as handle:
-        handle.write(bin)
-    return True, filename
+            return False, '', b''
+        bin_data = await resp.read()
+    return True, bin_data
+
+
+def filter_tree_file(file_bin: bytes):
+    # filter tree files from zip
+    tree_files = list()
+    with ZipFile(io.BytesIO(file_bin), 'r') as z:
+        file_list = z.namelist()
+        for file in file_list:
+            suffix = Path(file.lower()).suffix
+            if suffix in SUFFIXES:
+                tree_files.append(file)
+            else:
+                print(file, 'is not tree file')
+    # todo: extract file
+    # todo: handle folder in zip
+    print(tree_files)
 
 
 async def main():
@@ -54,6 +76,12 @@ async def main():
             print(identifier, 'too big', size, 'bp')
             return
         dataset_url = get_dryad_url(identifier)
-        filename = await download(session, dataset_url, filename)
+        # filename = OUT_FOLDER / (identifier.replace(':', '_').replace('/', '_') + '.zip')
+        ok, bin_data = await download(session, dataset_url)
+        if not ok:
+            print(f'Download dataset {dataset_url} fail')
+        else:
+            print('Got', dataset_url)
+        filter_tree_file(bin_data)
 
 asyncio.run(main())
