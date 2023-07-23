@@ -10,7 +10,8 @@ import aiofile
 
 server = 'https://datadryad.org/api/v2'
 MAX_SIZE = 1024*1024*100
-SUFFIXES = '.nwk,.newick,.nex,.nexus,.tre,.tree,.treefile'.split(',')
+TREE_SUFFIX = '.nwk,.newick,.nex,.nexus,.tre,.tree,.treefile'.split(',')
+ZIP_SUFFIX = '.zip'
 OUT_FOLDER = Path(r'R:\dryad_out')
 if not OUT_FOLDER.exists():
     OUT_FOLDER.mkdir()
@@ -56,20 +57,28 @@ async def download(session: aiohttp.ClientSession, dataset_url: str) -> (
     return True, bin_data
 
 
+def extract_tree(z: ZipFile):
+    for file in z.namelist():
+        suffix = Path(file.lower()).suffix
+        if suffix in TREE_SUFFIX:
+            z.extract(file, path=OUT_FOLDER)
+            yield file
+        elif suffix == ZIP_SUFFIX:
+            print('Handle', file)
+            z.extract(file, path=OUT_FOLDER)
+            with ZipFile(OUT_FOLDER/file, 'r') as zz:
+                yield from extract_tree(zz)
+        else:
+            print(file, 'is not tree file')
+
+
 def filter_tree_file(file_bin: bytes):
     # filter tree files from zip
     # extract trees into OUT_FOLDER/
     tree_files = list()
     with ZipFile(io.BytesIO(file_bin), 'r') as z:
-        for file in z.namelist():
-            suffix = Path(file.lower()).suffix
-            if suffix in SUFFIXES:
-                tree_files.append(file)
-                z.extract(file, path=OUT_FOLDER)
-            else:
-                print(file, 'is not tree file')
-    # todo: extract file
-    # todo: handle folder in zip
+        for tree_file in extract_tree(z):
+            tree_files.append(tree_file)
     print(tree_files)
     return tree_files
 
@@ -90,4 +99,5 @@ async def main():
         filter_tree_file(bin_data)
 
 
-asyncio.run(main())
+if __name__ == '__main__':
+    asyncio.run(main())
