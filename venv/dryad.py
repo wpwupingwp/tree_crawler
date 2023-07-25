@@ -5,6 +5,7 @@ import asyncio
 import io
 import json
 from collections import namedtuple
+from dataclasses import dataclass
 
 import aiohttp
 import aiofile
@@ -17,8 +18,18 @@ ZIP_SUFFIX = '.zip'
 OUT_FOLDER = Path(r'R:\dryad_out')
 if not OUT_FOLDER.exists():
     OUT_FOLDER.mkdir()
-Result = namedtuple('Result', ('title', 'identifier', 'doi', 'tree_files'),
-                    defaults=('', '', '', tuple()))
+
+
+@dataclass
+class Result:
+    title: str = ''
+    identifier: str = ''
+    doi: str = ''
+    tree_files: tuple = tuple()
+
+    def empty(self):
+        return len(self.tree_files == 0)
+
 
 test_title = [
     'Contrasting physiological traits of shade tolerance in Pinus and '
@@ -54,7 +65,8 @@ async def search_title(session: aiohttp.ClientSession, title: str) -> (
             return '', -1
         # print(json.dumps(result, indent=True))
         identifier = result['_embedded']['stash:datasets'][0]['identifier']
-        related_work = result['_embedded']['stash:datasets'][0].get('relatedWorks', None)
+        related_work = result['_embedded']['stash:datasets'][0].get(
+            'relatedWorks', None)
         if related_work is None:
             doi = ''
         else:
@@ -98,22 +110,23 @@ def filter_tree_file(file_bin: bytes) -> tuple:
     return tuple(tree_files)
 
 
-async def get_trees_by_title(session, title: str) -> (str, str, list):
+async def get_trees_by_title(session, title: str) -> Result:
     tree_files = list()
     identifier, doi, size = await search_title(session, title)
+    result = Result(title, identifier, doi)
     if size > MAX_SIZE:
         print(identifier, 'too big', size, 'bp')
-        return Result()
+        return result
     dataset_url = get_dryad_url(identifier)
     print('Downloading', dataset_url.removesuffix('/download'), size, 'bp')
     ok, bin_data = await download(session, dataset_url)
     if not ok:
         print(f'Download dataset {dataset_url} fail')
-        return Result()
+        return result
     else:
         print('Got', dataset_url)
         tree_files = filter_tree_file(bin_data)
-    result = Result(title, identifier, doi, tree_files)
+        result.tree_files = tree_files
     return result
 
 
@@ -123,7 +136,11 @@ async def main(title_list=test_title):
         results = await asyncio.gather(
             *[get_trees_by_title(session, title) for title in title_list],
             return_exceptions=True)
-    print(*results, sep='\n')
+    for i in results:
+        if i.empty():
+            print('Empty', i)
+        else:
+            print(i)
     return title_trees
 
 
