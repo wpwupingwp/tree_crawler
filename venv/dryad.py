@@ -4,6 +4,7 @@ from zipfile import ZipFile, ZipInfo
 import asyncio
 import io
 import json
+from collections import namedtuple
 
 import aiohttp
 import aiofile
@@ -16,6 +17,8 @@ ZIP_SUFFIX = '.zip'
 OUT_FOLDER = Path(r'R:\dryad_out')
 if not OUT_FOLDER.exists():
     OUT_FOLDER.mkdir()
+Result = namedtuple('Result', ('title', 'identifier', 'doi', 'tree_files'),
+                    defaults=('', '', '', tuple()))
 
 test_title = [
     'Contrasting physiological traits of shade tolerance in Pinus and '
@@ -33,8 +36,8 @@ def get_dryad_url(identifier: str) -> str:
     # convert dryad doi to dryad download url
     # dryad requires escaped url
     doi = identifier.replace(':', '%3A').replace('/', '%2F')
-    doi_url = f'{server}/datasets/{doi}/download'
-    return doi_url
+    download_url = f'{server}/datasets/{doi}/download'
+    return download_url
 
 
 async def search_title(session: aiohttp.ClientSession, title: str) -> (
@@ -51,7 +54,11 @@ async def search_title(session: aiohttp.ClientSession, title: str) -> (
             return '', -1
         # print(json.dumps(result, indent=True))
         identifier = result['_embedded']['stash:datasets'][0]['identifier']
-        doi = result['_embedded']['stash:datasets'][0]['relatedWorks'][0]['identifier']
+        related_work = result['_embedded']['stash:datasets'][0].get('relatedWorks', None)
+        if related_work is None:
+            doi = ''
+        else:
+            doi = related_work[0]['identifier']
         size = result['_embedded']['stash:datasets'][0]['storageSize']
         return identifier, doi, size
 
@@ -81,14 +88,14 @@ def extract_tree(z: ZipFile):
             print('\t', file, 'is not tree file')
 
 
-def filter_tree_file(file_bin: bytes):
+def filter_tree_file(file_bin: bytes) -> tuple:
     # filter tree files from zip
     # extract trees into OUT_FOLDER/
     tree_files = list()
     with ZipFile(io.BytesIO(file_bin), 'r') as z:
         for tree_file in extract_tree(z):
             tree_files.append(tree_file)
-    return tree_files
+    return tuple(tree_files)
 
 
 async def get_trees_by_title(session, title: str) -> (str, str, list):
@@ -96,17 +103,18 @@ async def get_trees_by_title(session, title: str) -> (str, str, list):
     identifier, doi, size = await search_title(session, title)
     if size > MAX_SIZE:
         print(identifier, 'too big', size, 'bp')
-        return tree_files
+        return Result()
     dataset_url = get_dryad_url(identifier)
-    print('Downloading', dataset_url, size, 'bp')
+    print('Downloading', dataset_url.removesuffix('/download'), size, 'bp')
     ok, bin_data = await download(session, dataset_url)
     if not ok:
         print(f'Download dataset {dataset_url} fail')
-        return tree_files
+        return Result()
     else:
         print('Got', dataset_url)
         tree_files = filter_tree_file(bin_data)
-    return identifier, doi, tree_files
+    result = Result(title, identifier, doi, tree_files)
+    return result
 
 
 async def main(title_list=test_title):
@@ -115,8 +123,7 @@ async def main(title_list=test_title):
         results = await asyncio.gather(
             *[get_trees_by_title(session, title) for title in title_list],
             return_exceptions=True)
-    title_trees = dict(zip(title_list, results))
-    print(title_trees.items())
+    print(*results, sep='\n')
     return title_trees
 
 
