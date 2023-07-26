@@ -30,6 +30,9 @@ class Result:
     def empty(self):
         return len(self.tree_files) == 0
 
+    def add_trees(self, trees: list):
+        self.tree_files = tuple(trees)
+
 
 test_title = [
     'Contrasting physiological traits of shade tolerance in Pinus and '
@@ -112,7 +115,7 @@ def filter_tree_file(file_bin: bytes) -> tuple:
     with ZipFile(io.BytesIO(file_bin), 'r') as z:
         for tree_file in extract_tree(z):
             tree_files.append(tree_file)
-    return tuple(tree_files)
+    return tree_files
 
 
 async def get_trees_by_title(session, title: str) -> Result:
@@ -125,7 +128,7 @@ async def get_trees_by_title(session, title: str) -> Result:
         return result
     else:
         tree_files = filter_tree_file(bin_data)
-        result.tree_files = tree_files
+        result.add_trees(tree_files)
     return result
 
 
