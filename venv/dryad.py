@@ -28,7 +28,7 @@ class Result:
     tree_files: tuple = tuple()
 
     def empty(self):
-        return len(self.tree_files == 0)
+        return len(self.tree_files) == 0
 
 
 test_title = [
