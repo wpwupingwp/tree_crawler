@@ -19,7 +19,7 @@ ZIP_SUFFIX = '.zip'
 OUT_FOLDER = Path(r'R:\dryad_out')
 if not OUT_FOLDER.exists():
     OUT_FOLDER.mkdir()
-
+# https://api.figshare.com/v2/file/download/17716346 fail 403
 test_doi = ['10.1021/ja953595k'
             '10.1371/journal.pbio.0040073',
             '10.1371/journal.pcbi.0030003',
