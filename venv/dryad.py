@@ -88,7 +88,7 @@ async def download(session: aiohttp.ClientSession, download_url: str,
     print('Downloading', download_url.removesuffix('/download'), size, 'bp')
     async with session.get(download_url) as resp:
         if not resp.ok:
-            print(f'Download dataset {download_url} fail', resp.status)
+            print(f'Download {download_url} fail', resp.status)
             return False, b''
         bin_data = await resp.read()
     print('Got', download_url)

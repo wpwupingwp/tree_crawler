@@ -82,19 +82,20 @@ async def search_doi(session: ClientSession, raw_doi: str) -> list:
     return article_urls
 
 
-async def download(session: ClientSession, download_url: str,
-                   size: int) -> (bool, bytes):
-    if size > MAX_SIZE:
-        print(download_url, 'too big', size, 'bp')
-        return False, b''
-    print('Downloading', download_url.removesuffix('/download'), size, 'bp')
-    async with session.get(download_url) as resp:
-        if not resp.ok:
-            print(resp.status, download_url)
-            return False, b''
-        bin_data = await resp.read()
-    print('Got', download_url)
-    return True, bin_data
+from dryad import download
+# async def download(session: ClientSession, download_url: str,
+#                    size: int) -> (bool, bytes):
+#     if size > MAX_SIZE:
+#         print(download_url, 'too big', size, 'bp')
+#         return False, b''
+#     print('Downloading', download_url.removesuffix('/download'), size, 'bp')
+#     async with session.get(download_url) as resp:
+#         if not resp.ok:
+#             print(resp.status, download_url)
+#             return False, b''
+#         bin_data = await resp.read()
+#     print('Got', download_url)
+#     return True, bin_data
 
 
 async def get_trees_by_doi(session: ClientSession, doi: str) -> Result:
@@ -112,13 +113,17 @@ async def get_trees_by_doi(session: ClientSession, doi: str) -> Result:
             identifier = article_info['doi']
             for i in article_info['files']:
                 filename = Path(i['name'])
+                file_id = i['id']
+                download_url = f'{SERVER}/file/download/{file_id}'
                 file_suffix = filename.suffix.lower()
                 # figshare have name info before download and extraction
                 if (file_suffix not in TREE_SUFFIX) and (
                         file_suffix not in ('.txt', '.zip')):
-                    print('Skip', i['name'], 'in', doi)
+                    print('Skip', filename, 'in', doi)
                     continue
-                to_download.append((i['download_url'], i['size'], filename))
+                else:
+                    print(filename, 'may be a tree file')
+                to_download.append((download_url, i['size'], filename))
     result = Result(title, identifier, doi)
     downloads = await asyncio.gather(*[download(session, download_url, size) for
                                        download_url, size, _ in to_download],
@@ -134,14 +139,16 @@ async def get_trees_by_doi(session: ClientSession, doi: str) -> Result:
             # todo: assume filenames are all unique!
             out_file.write_bytes(bin_data)
             all_tree_files.append(out_file)
-        elif filename.suffix.lower == '.zip':
+        elif filename.suffix.lower() == '.zip':
             tree_files = filter_tree_from_zip(bin_data)
             all_tree_files.extend(tree_files)
-        elif filename.suffix.lower == '.txt':
+        elif filename.suffix.lower() == '.txt':
             content = bin_data.decode()
             if is_valid_tree(content):
                 out_file.write_bytes(bin_data)
                 all_tree_files.append(out_file)
+            else:
+                print('not valid')
         else:
             pass
     result.add_trees(all_tree_files)
