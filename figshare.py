@@ -1,4 +1,4 @@
-import aiohttp
+from aiohttp import ClientSession
 import io
 import re
 from dataclasses import dataclass
@@ -19,6 +19,14 @@ OUT_FOLDER = Path(r'R:\dryad_out')
 if not OUT_FOLDER.exists():
     OUT_FOLDER.mkdir()
 
+test_doi = ['10.1021/ja953595k'
+            '10.1371/journal.pbio.0040073',
+            '10.1371/journal.pcbi.0030003',
+            '10.1371/journal.pone.0000296',
+            '10.1371/journal.pone.0000522',
+            '10.1371/journal.pone.0000621',
+            '10.1371/journal.pone.0000995',
+            '10.1371/journal.pone.0001764', ]
 
 @dataclass
 class Result:
@@ -52,8 +60,7 @@ def get_doi(raw_doi: str, doi_type='default') -> str:
         return doi
 
 
-async def search_doi(session: aiohttp.ClientSession,
-                     raw_doi='10.1021/ja953595k') -> (str, str):
+async def search_doi(session: ClientSession, raw_doi: str) -> str:
     # search article doi in figshare
     # some article do not have doi info in figshare
     # searching article title in figshare return unrelated articles
@@ -65,17 +72,17 @@ async def search_doi(session: aiohttp.ClientSession,
     async with session.post(search_url, params=params) as resp:
         if not resp.ok:
             print(raw_doi, resp.ok)
-            return '', ''
+            return ''
         article_list = await resp.json()
         if len(article_list) != 1:
-            return '', ''
+            return ''
         article = article_list[0]
         # article doi
         article_url = article['url']
     return article_url
 
 
-async def download(session: aiohttp.ClientSession, download_url: str,
+async def download(session: ClientSession, download_url: str,
                    size: int) -> (bool, bytes):
     if size > MAX_SIZE:
         print(download_url, 'too big', size, 'bp')
@@ -86,6 +93,7 @@ async def download(session: aiohttp.ClientSession, download_url: str,
             print(resp.status, download_url)
             return False, b''
         bin_data = await resp.read()
+    print('Got', download_url)
     return True, bin_data
 
 
@@ -114,9 +122,10 @@ def filter_tree_file(file_bin: bytes) -> tuple:
     return tuple(tree_files)
 
 
-async def get_trees_by_doi(session, doi: str) -> Result:
-    tree_files = list()
+async def get_trees_by_doi(session: ClientSession, doi: str) -> Result:
     article_url = await search_doi(session, doi)
+    if len(article_url) == 0:
+        return Result(doi=doi)
     async with session.get(article_url) as resp:
         if not resp.ok:
             return Result()
@@ -148,7 +157,7 @@ async def get_trees_by_doi(session, doi: str) -> Result:
 
 async def main(doi_list=test_doi):
     title_trees = dict()
-    async with aiohttp.ClientSession() as session:
+    async with ClientSession() as session:
         results = await asyncio.gather(
             *[get_trees_by_doi(session, doi) for doi in doi_list],
             return_exceptions=True)
