@@ -1,10 +1,11 @@
-from aiohttp import ClientSession
-import io
 import re
 from dataclasses import dataclass
 from pathlib import Path
 import asyncio
-from zipfile import ZipFile
+
+from aiohttp import ClientSession
+
+from dryad import filter_tree_from_zip, is_valid_tree
 
 # figshare item type id
 DATASET = 3
@@ -26,7 +27,8 @@ test_doi = ['10.1021/ja953595k'
             '10.1371/journal.pone.0000522',
             '10.1371/journal.pone.0000621',
             '10.1371/journal.pone.0000995',
-            '10.1371/journal.pone.0001764', ]
+            '10.1371/journal.pone.0001764',
+            '10.1186/s12862-019-1505-1']
 
 @dataclass
 class Result:
@@ -95,36 +97,10 @@ async def download(session: ClientSession, download_url: str,
     return True, bin_data
 
 
-def extract_tree(z: ZipFile):
-    for file in z.namelist():
-        suffix = Path(file.lower()).suffix
-        if suffix in TREE_SUFFIX:
-            z.extract(file, path=OUT_FOLDER)
-            yield file
-        elif suffix == ZIP_SUFFIX:
-            print('\t', 'Extracting', file)
-            z.extract(file, path=OUT_FOLDER)
-            with ZipFile(OUT_FOLDER / file, 'r') as zz:
-                yield from extract_tree(zz)
-        else:
-            print('\t', file, 'is not tree file')
-
-
-def filter_tree_file(file_bin: bytes) -> tuple:
-    # filter tree files from zip
-    # extract trees into OUT_FOLDER/
-    tree_files = list()
-    with ZipFile(io.BytesIO(file_bin), 'r') as z:
-        for tree_file in extract_tree(z):
-            tree_files.append(tree_file)
-    return tuple(tree_files)
-
-
 async def get_trees_by_doi(session: ClientSession, doi: str) -> Result:
     article_urls = await search_doi(session, doi)
     if len(article_urls) == 0:
         return Result(doi=doi)
-    print(article_urls)
     to_download = list()
     for article_url in article_urls:
         async with session.get(article_url) as resp:
@@ -135,29 +111,44 @@ async def get_trees_by_doi(session: ClientSession, doi: str) -> Result:
             title = article_info['resource_title']
             identifier = article_info['doi']
             for i in article_info['files']:
-                file_suffix = Path(i['name']).suffix
+                filename = Path(i['name'])
+                file_suffix = filename.suffix.lower()
                 # figshare have name info before download and extraction
-                if file_suffix not in TREE_SUFFIX and file_suffix != '.zip':
+                if (file_suffix not in TREE_SUFFIX) and (
+                        file_suffix not in ('.txt', '.zip')):
                     print('Skip', i['name'], 'in', doi)
                     continue
-                to_download.append((i['download_url'], i['size']))
+                to_download.append((i['download_url'], i['size'], filename))
     result = Result(title, identifier, doi)
-    download_results = await asyncio.gather(*[download(session, download_url,
-                                                       size) for
-                                              download_url, size in
-                                              to_download],
-                                            return_exceptions=True)
+    downloads = await asyncio.gather(*[download(session, download_url, size) for
+                                       download_url, size, _ in to_download],
+                                     return_exceptions=True)
     all_tree_files = list()
-    for ok, bin_data in download_results:
+    for x, y in zip(downloads, to_download):
+        ok, bin_data = x
+        *_, filename = y
+        out_file = OUT_FOLDER / filename
         if not ok:
             continue
-        tree_files = filter_tree_file(bin_data)
-        all_tree_files.extend(tree_files)
+        if filename in TREE_SUFFIX:
+            # todo: assume filenames are all unique!
+            out_file.write_bytes(bin_data)
+            all_tree_files.append(out_file)
+        elif filename.suffix.lower == '.zip':
+            tree_files = filter_tree_from_zip(bin_data)
+            all_tree_files.extend(tree_files)
+        elif filename.suffix.lower == '.txt':
+            content = bin_data.decode()
+            if is_valid_tree(content):
+                out_file.write_bytes(bin_data)
+                all_tree_files.append(out_file)
+        else:
+            pass
     result.add_trees(all_tree_files)
     return result
 
 
-async def main(doi_list=test_doi):
+async def main(doi_list: list):
     title_trees = dict()
     async with ClientSession() as session:
         results = await asyncio.gather(
@@ -172,4 +163,4 @@ async def main(doi_list=test_doi):
 
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    asyncio.run(main(test_doi))

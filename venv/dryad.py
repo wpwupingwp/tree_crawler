@@ -9,6 +9,8 @@ from dataclasses import dataclass
 
 import aiohttp
 import aiofile
+import dendropy
+
 
 server = 'https://datadryad.org/api/v2'
 MAX_SIZE = 1024 * 1024 * 10
@@ -92,11 +94,35 @@ async def download(session: aiohttp.ClientSession, download_url: str,
     print('Got', download_url)
     return True, bin_data
 
+def is_valid_tree(content: str) -> bool:
+    # test if txt is newick or nexus
+    try:
+        tree = dendropy.Tree.get(data=content, schema='newick')
+        return True
+    except Exception:
+        pass
+    try:
+        tree = dendropy.Tree.get(data=content, schema='nexus')
+        return True
+    except Exception:
+        pass
+    return False
+
 
 def extract_tree(z: ZipFile):
-    for file in z.namelist():
-        suffix = Path(file.lower()).suffix
-        if suffix in TREE_SUFFIX:
+    for file_ in z.namelist():
+        file = Path(file)
+        suffix = file.suffix.lower()
+        if suffix == '.txt':
+            z.extract(file, path=OUT_FOLDER)
+            with open(file, 'r') as _:
+                content = _.read()
+            if is_txt_valid_tree(content):
+                yield file
+            else:
+                file.unlink()
+                print('\t', file, 'is not tree file')
+        elif suffix in TREE_SUFFIX:
             z.extract(file, path=OUT_FOLDER)
             yield file
         elif suffix == ZIP_SUFFIX:
@@ -108,7 +134,7 @@ def extract_tree(z: ZipFile):
             print('\t', file, 'is not tree file')
 
 
-def filter_tree_file(file_bin: bytes) -> tuple:
+def filter_tree_from_zip(file_bin: bytes) -> tuple:
     # filter tree files from zip
     # extract trees into OUT_FOLDER/
     tree_files = list()
@@ -127,12 +153,12 @@ async def get_trees_by_title(session, title: str) -> Result:
     if not ok:
         return result
     else:
-        tree_files = filter_tree_file(bin_data)
+        tree_files = filter_tree_from_zip(bin_data)
         result.add_trees(tree_files)
     return result
 
 
-async def main(title_list=test_title):
+async def main(title_list: list):
     title_trees = dict()
     async with aiohttp.ClientSession() as session:
         results = await asyncio.gather(
@@ -147,4 +173,4 @@ async def main(title_list=test_title):
 
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    asyncio.run(main(test_title))
