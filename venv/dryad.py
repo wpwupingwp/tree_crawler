@@ -75,12 +75,15 @@ async def search_title(session: aiohttp.ClientSession, title: str) -> (
         return identifier, doi, size
 
 
-async def download(session: aiohttp.ClientSession, download_url: str) -> (
-        bool, bytes):
+async def download(session: aiohttp.ClientSession, download_url: str,
+                   size: int) -> (bool, bytes):
+    if size > MAX_SIZE:
+        print(download_url, 'too big', size, 'bp')
+        return False, b''
     async with session.get(download_url) as resp:
         if not resp.ok:
             print(resp.status, download_url)
-            return False, '', b''
+            return False, b''
         bin_data = await resp.read()
     return True, bin_data
 
@@ -114,12 +117,9 @@ async def get_trees_by_title(session, title: str) -> Result:
     tree_files = list()
     identifier, doi, size = await search_title(session, title)
     result = Result(title, identifier, doi)
-    if size > MAX_SIZE:
-        print(identifier, 'too big', size, 'bp')
-        return result
     dataset_url = get_dryad_url(identifier)
     print('Downloading', dataset_url.removesuffix('/download'), size, 'bp')
-    ok, bin_data = await download(session, dataset_url)
+    ok, bin_data = await download(session, dataset_url, size)
     if not ok:
         print(f'Download dataset {dataset_url} fail')
         return result
