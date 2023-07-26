@@ -60,7 +60,7 @@ def get_doi(raw_doi: str, doi_type='default') -> str:
         return doi
 
 
-async def search_doi(session: ClientSession, raw_doi: str) -> str:
+async def search_doi(session: ClientSession, raw_doi: str) -> list:
     # search article doi in figshare
     # some article do not have doi info in figshare
     # searching article title in figshare return unrelated articles
@@ -72,14 +72,12 @@ async def search_doi(session: ClientSession, raw_doi: str) -> str:
     async with session.post(search_url, params=params) as resp:
         if not resp.ok:
             print(raw_doi, resp.ok)
-            return ''
+            return list()
         article_list = await resp.json()
-        if len(article_list) != 1:
-            return ''
-        article = article_list[0]
-        # article doi
-        article_url = article['url']
-    return article_url
+        if len(article_list) == 0:
+            return list()
+    article_urls = [article['url'] for article in article_list]
+    return article_urls
 
 
 async def download(session: ClientSession, download_url: str,
@@ -123,22 +121,26 @@ def filter_tree_file(file_bin: bytes) -> tuple:
 
 
 async def get_trees_by_doi(session: ClientSession, doi: str) -> Result:
-    article_url = await search_doi(session, doi)
-    if len(article_url) == 0:
+    article_urls = await search_doi(session, doi)
+    if len(article_urls) == 0:
         return Result(doi=doi)
-    async with session.get(article_url) as resp:
-        if not resp.ok:
-            return Result()
-        to_download = list()
-        article_info = await resp.json()
-        title = article_info['resource_title']
-        identifier = article_info['doi']
-        for i in article_info['files']:
-            file_suffix = Path(i['name']).suffix
-            # figshare have name info before download and extraction
-            if file_suffix not in TREE_SUFFIX and file_suffix != '.zip':
-                continue
-            to_download.append((i['download_url'], i['size']))
+    print(article_urls)
+    to_download = list()
+    for article_url in article_urls:
+        async with session.get(article_url) as resp:
+            if not resp.ok:
+                return Result(doi=doi)
+            article_info = await resp.json()
+            # repeat assignment?
+            title = article_info['resource_title']
+            identifier = article_info['doi']
+            for i in article_info['files']:
+                file_suffix = Path(i['name']).suffix
+                # figshare have name info before download and extraction
+                if file_suffix not in TREE_SUFFIX and file_suffix != '.zip':
+                    print('Skip', i['name'], 'in', doi)
+                    continue
+                to_download.append((i['download_url'], i['size']))
     result = Result(title, identifier, doi)
     download_results = await asyncio.gather(*[download(session, download_url,
                                                        size) for
