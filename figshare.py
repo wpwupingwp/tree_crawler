@@ -6,10 +6,10 @@ import asyncio
 from aiohttp import ClientSession
 
 from dryad import filter_tree_from_zip, is_valid_tree
+from dryad import download, Result, get_doi
 
 # figshare item type id
 DATASET = 3
-DOI = re.compile(r'\d+\.\d+/[^ ]+')
 SERVER = 'https://api.figshare.com/v2'
 TREE_SUFFIX = '.nwk,.newick,.nex,.nexus,.tre,.tree,.treefile'.split(',')
 MAX_SIZE = 1024 * 1024 * 10
@@ -28,38 +28,10 @@ test_doi = ['10.1021/ja953595k'
             '10.1371/journal.pone.0000621',
             '10.1371/journal.pone.0000995',
             '10.1371/journal.pone.0001764',
-            '10.1186/s12862-019-1505-1']
-
-@dataclass
-class Result:
-    title: str = ''
-    identifier: str = ''
-    doi: str = ''
-    tree_files: tuple = tuple()
-
-    def empty(self):
-        return len(self.tree_files) == 0
-
-    def add_trees(self, trees: list):
-        self.tree_files = tuple(trees)
+            '10.1186/s12862-019-1505-1',
+            '10.1186/s12864-019-6114-2']
 
 
-def get_doi(raw_doi: str, doi_type='default') -> str:
-    # doi of article
-    # 10.1234/12345
-    match = re.search(DOI, raw_doi)
-    if match is not None:
-        doi = match.group()
-    else:
-        doi = raw_doi
-    if doi_type == 'default':
-        return doi
-    elif doi_type == 'with_prefix':
-        return f'doi:{doi}'
-    elif doi_type == 'dryad':
-        return f'doi%3A{doi.replace("/", "%2F")}'
-    else:
-        return doi
 
 
 async def search_doi(session: ClientSession, raw_doi: str) -> list:
@@ -80,22 +52,6 @@ async def search_doi(session: ClientSession, raw_doi: str) -> list:
             return list()
     article_urls = [article['url'] for article in article_list]
     return article_urls
-
-
-from dryad import download
-# async def download(session: ClientSession, download_url: str,
-#                    size: int) -> (bool, bytes):
-#     if size > MAX_SIZE:
-#         print(download_url, 'too big', size, 'bp')
-#         return False, b''
-#     print('Downloading', download_url.removesuffix('/download'), size, 'bp')
-#     async with session.get(download_url) as resp:
-#         if not resp.ok:
-#             print(resp.status, download_url)
-#             return False, b''
-#         bin_data = await resp.read()
-#     print('Got', download_url)
-#     return True, bin_data
 
 
 async def get_trees_by_doi(session: ClientSession, doi: str) -> Result:
@@ -126,8 +82,7 @@ async def get_trees_by_doi(session: ClientSession, doi: str) -> Result:
                 to_download.append((download_url, i['size'], filename))
     result = Result(title, identifier, doi)
     downloads = await asyncio.gather(*[download(session, download_url, size) for
-                                       download_url, size, _ in to_download],
-                                     return_exceptions=True)
+                                       download_url, size, _ in to_download], )
     all_tree_files = list()
     for x, y in zip(downloads, to_download):
         ok, bin_data = x
@@ -148,7 +103,7 @@ async def get_trees_by_doi(session: ClientSession, doi: str) -> Result:
                 out_file.write_bytes(bin_data)
                 all_tree_files.append(out_file)
             else:
-                print('not valid')
+                print('not valid tree', filename)
         else:
             pass
     result.add_trees(all_tree_files)
@@ -162,6 +117,8 @@ async def main(doi_list: list):
             *[get_trees_by_doi(session, doi) for doi in doi_list],
             return_exceptions=True)
     for i in results:
+        if isinstance(i, Exception):
+            raise i
         if i.empty():
             print('Empty', i)
         else:
