@@ -12,7 +12,6 @@ import aiohttp
 import aiofile
 import dendropy
 
-
 DOI = re.compile(r'\d+\.\d+/[^ ]+')
 server = 'https://datadryad.org/api/v2'
 MAX_SIZE = 1024 * 1024 * 10
@@ -28,6 +27,7 @@ if not OUT_FOLDER.exists():
 class Result:
     title: str = ''
     identifier: str = ''
+    # should be '10.xxxx/yyyyy' format
     doi: str = ''
     tree_files: tuple = tuple()
 
@@ -38,20 +38,15 @@ class Result:
         self.tree_files = tuple(trees)
 
 
-test_title = [
-    'Contrasting physiological traits of shade tolerance in Pinus and '
-    'Podocarpaceae native to a tropical Vietnamese forest: Insight from '
-    'an aberrant flat-leaved pine',
-    'Phylogeny, classification, and character evolution of tribe Citharexyleae (Verbenaceae)',
-    'Differential patterns of floristic phylogenetic diversity across a post-glacial landscape',
-    'Four new species of Viola (Violaceae) from southern China',
-    'New species from Phytophthora Clade 6a: evidence for recent radiation',
-    'Craniodental Morphology and Phylogeny of Marsupials']
 test_doi = ['10.1101/2020.10.08.331355',
-'10.1111/jbi.13789',
-'10.1111/njb.03941',
-'10.3767/persoonia.2018.41.01',
-'10.1206/0003-0090.457.1.1']
+            '10.1111/jbi.13789',
+            '10.1111/njb.03941',
+            '10.3767/persoonia.2018.41.01',
+            '10.1206/0003-0090.457.1.1',
+            '10.3897/bdj.5.e12581',
+            '10.1093/sysbio/49.2.278',
+            '10.1098/rspb.2021.2178',
+            '10.1111/evo.12614']
 
 
 def get_doi(raw_doi: str, doi_type='default') -> str:
@@ -122,6 +117,7 @@ async def download(session: aiohttp.ClientSession, download_url: str,
     print('Got', download_url)
     return True, bin_data
 
+
 def is_valid_tree(content: str) -> bool:
     # test if txt is newick or nexus
     try:
@@ -143,7 +139,7 @@ def extract_tree(z: ZipFile):
         if suffix == '.txt':
             z.extract(file, path=OUT_FOLDER)
             _ = OUT_FOLDER / file
-            content = _.read_text()
+            content = _.read_text(errors='ignore')
             if is_valid_tree(content):
                 yield file
             else:
