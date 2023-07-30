@@ -4,11 +4,12 @@ from calendar import month_abbr
 import asyncio
 from aiohttp import ClientSession
 from io import BytesIO
+from time import sleep
 
 BASE_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/'
 MONTH2NUM = {month_abbr[i]: f'{i:02d}' for i in range(1, 13)}
 # max fetch id number per request
-RETMAX = 2
+RETMAX = 1000
 # fetch article info per request
 BATCH_SIZE = 100
 # todo
@@ -35,6 +36,8 @@ def parse_entrez_result(data: bytes) -> dict:
     tmp.write(data)
     tmp.seek(0)
     parsed = Entrez.read(tmp)
+    # NCBI limit 3 requests per second
+    sleep(0.3)
     return parsed
 
 
@@ -83,7 +86,8 @@ def parse_article_info(info):
     if 'AuthorList' in article:
         author = ''
         for a in article['AuthorList']:
-            author += f', {a["ForeName"]} {a["LastName"]}'
+            if 'ForeName' in a and 'LastName' in a:
+                author += f', {a["ForeName"]} {a["LastName"]}'
     else:
         author = ''
     return dict(doi=doi, journal_name=journal_name, title=title,
@@ -95,13 +99,14 @@ async def main(query_str: str):
     session = ClientSession()
     print(query_str)
     id_list = await fetch_id_list(session, query_str, retmax=RETMAX)
-    print2(id_list)
+    print2(len(id_list), 'records')
     for i in range(0, len(id_list), BATCH_SIZE):
         print(i, i + BATCH_SIZE)
         batch_id_list = ','.join(id_list[i:(i + BATCH_SIZE)])
         batch_article_info = await fetch_article_info(session, batch_id_list)
         for record in batch_article_info:
             article_info = parse_article_info(record)
+            # yield article_info
             print(article_info)
     await session.close()
 
