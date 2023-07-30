@@ -4,7 +4,7 @@ from calendar import month_abbr
 
 MONTH2NUM = {month_abbr[i]: f'{i:02d}' for i in range(1, 13)}
 # max fetch id number per request
-RETMAX = 4
+RETMAX = 2
 # fetch article info per request
 BATCH_SIZE = 3
 
@@ -44,7 +44,12 @@ for i in range(0, len(id_list), BATCH_SIZE):
         volume = article['Journal']['JournalIssue']['Volume']
         issue = article['Journal']['JournalIssue']['Issue']
         article_id_list = article['ELocationID']
-        article_id_list2 = record['PubmedData']['ArticleIdList']
+        doi = ''
+        for _ in article_id_list:
+            if _.attributes['EIdType'] == 'doi':
+                doi = str(_)
+                break
+        # article_id_list2 = record['PubmedData']['ArticleIdList']
         journal_name = article['Journal']['Title']
         article_title = article['ArticleTitle']
         if 'Abstract' in article:
@@ -57,5 +62,4 @@ for i in range(0, len(id_list), BATCH_SIZE):
                 author += f', {a["ForeName"]} {a ["LastName"]}'
         else:
             author = ''
-        print(f'{journal_name=} {article_title=} {pub_date=} {author=} {abstract=} {article_id_list=} {article_id_list2=} {volume=} {issue=}')
-        print(type(article_id_list), type(article_id_list2),dir(article_id_list))
+        print(f'{doi=} {journal_name=} {article_title=} {pub_date=} {author=} {abstract=} {article_id_list=} {volume=} {issue=}')
