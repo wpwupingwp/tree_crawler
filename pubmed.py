@@ -4,6 +4,7 @@ from calendar import month_abbr
 import asyncio
 from aiohttp import ClientSession
 from io import BytesIO
+
 BASE_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/'
 MONTH2NUM = {month_abbr[i]: f'{i:02d}' for i in range(1, 13)}
 # max fetch id number per request
@@ -26,19 +27,36 @@ def date2str(date_raw: dict) -> str:
     return f'{year}/{month}/{day}'
 
 
-async def fetch_id_list(session: ClientSession, query_str: str, retmax: int) -> list:
+def parse_entrez_result(data: bytes) -> dict:
+    # Entrez.read require file-like object
+    tmp = BytesIO()
+    tmp.write(data)
+    tmp.seek(0)
+    parsed = Entrez.read(tmp)
+    return parsed
+
+
+async def fetch_id_list(session: ClientSession, query_str: str,
+                        retmax: int) -> list:
     search_url = BASE_URL + 'esearch.fcgi'
-    params = {'db': 'pubmed', 'term': query_str, 'retmax': RETMAX}
+    params = {'db': 'pubmed', 'term': query_str, 'retmax': retmax}
     async with session.get(search_url, params=params) as resp:
         if not resp.ok:
             return []
         content = await resp.read()
-        # Entrez.read require file-like object
-        tmp = BytesIO()
-        tmp.write(content)
-        tmp.seek(0)
-        parsed = Entrez.read(tmp)
+        parsed = parse_entrez_result(content)
         return parsed['IdList']
+
+
+async def fetch_article_info(session: ClientSession, id_list: list) -> dict:
+    fetch_url = BASE_URL + 'efetch.fcgi'
+    params = {'db': 'pubmed', 'id': id_list}
+    async with session.get(fetch_url, params=params) as resp:
+        if not resp.ok:
+            return {}
+        content = await resp.read()
+        parsed = parse_entrez_result(content)
+    return parsed['IdList']
 
 
 async def main(query_str: str):
@@ -47,9 +65,10 @@ async def main(query_str: str):
     id_list = await fetch_id_list(session, query_str, retmax=RETMAX)
     print2(id_list)
     for i in range(0, len(id_list), BATCH_SIZE):
-        print(i, i+BATCH_SIZE)
-        batch_id_list = ','.join(id_list[i:(i+BATCH_SIZE)])
-        batch_article_info = Entrez.read(Entrez.efetch(db='pubmed', id=batch_id_list))
+        print(i, i + BATCH_SIZE)
+        batch_id_list = ','.join(id_list[i:(i + BATCH_SIZE)])
+        batch_article_info = Entrez.read(
+            Entrez.efetch(db='pubmed', id=batch_id_list))
         for record in batch_article_info['PubmedArticle']:
             article = record['MedlineCitation']['Article']
             # print2(article)
@@ -72,10 +91,11 @@ async def main(query_str: str):
             if 'AuthorList' in article:
                 author = ''
                 for a in article['AuthorList']:
-                    author += f', {a["ForeName"]} {a ["LastName"]}'
+                    author += f', {a["ForeName"]} {a["LastName"]}'
             else:
                 author = ''
-            print(f'{doi=} {journal_name=} {article_title=} {pub_date=} {author=} {abstract=} {article_id_list=} {volume=} {issue=}')
+            print(
+                f'{doi=} {journal_name=} {article_title=} {pub_date=} {author=} {abstract=} {article_id_list=} {volume=} {issue=}')
     await session.close()
 
 
