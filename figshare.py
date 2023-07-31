@@ -11,7 +11,6 @@ from utils import TREE_SUFFIX, ZIP_SUFFIX, TXT_SUFFIX, OUT_FOLDER
 DATASET = 3
 SERVER = 'https://api.figshare.com/v2'
 
-NEXUS_SUFFIX = '.nex,.nexus'.split(',')
 # https://api.figshare.com/v2/file/download/17716346 fail 403
 test_doi = ['10.1021/ja953595k'
             '10.1371/journal.pbio.0040073',

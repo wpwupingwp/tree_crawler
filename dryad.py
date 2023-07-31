@@ -1,13 +1,9 @@
-from pathlib import Path
 import asyncio
-import json
-import re
 
 import aiohttp
-import aiofile
 
 from utils import get_doi, Result, download
-from utils import is_valid_tree, filter_tree_from_zip, extract_tree
+from utils import filter_tree_from_zip
 
 server = 'https://datadryad.org/api/v2'
 NEXUS_SUFFIX = '.nex,.nexus'.split(',')

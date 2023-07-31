@@ -1,15 +1,18 @@
 from dataclasses import dataclass
-import dendropy
-import re
-from zipfile import ZipFile
-from pathlib import Path
 from io import BytesIO
+from pathlib import Path
+from zipfile import ZipFile
+import re
 
 import aiohttp
+import dendropy
 
 MAX_SIZE = 1024 * 1024 * 10
-TREE_SUFFIX = '.nwk,.newick,.nex,.nexus,.tre,.tree,.treefile'.split(',')
-ZIP_SUFFIX = '.zip'
+
+NEXUS_SUFFIX = '.nex,.nexus'.split(',')
+TREE_SUFFIX = set('.nwk,.newick,.nex,.nexus,.tre,.tree,.treefile'.split(','))
+TXT_SUFFIX = set('.txt')
+ZIP_SUFFIX = set('.zip')
 OUT_FOLDER = Path(r'R:\dryad_out')
 if not OUT_FOLDER.exists():
     OUT_FOLDER.mkdir()
@@ -89,7 +92,7 @@ async def download(session: aiohttp.ClientSession, download_url: str,
 def extract_tree(z: ZipFile):
     for file in z.namelist():
         suffix = Path(file).suffix.lower()
-        if suffix == '.txt':
+        if suffix in TXT_SUFFIX:
             z.extract(file, path=OUT_FOLDER)
             _ = OUT_FOLDER / file
             content = _.read_text(errors='ignore')
@@ -101,7 +104,7 @@ def extract_tree(z: ZipFile):
         elif suffix in TREE_SUFFIX:
             z.extract(file, path=OUT_FOLDER)
             yield file
-        elif suffix == ZIP_SUFFIX:
+        elif suffix in ZIP_SUFFIX:
             print('\t', 'Extracting', file)
             z.extract(file, path=OUT_FOLDER)
             with ZipFile(OUT_FOLDER / file, 'r') as zz:
