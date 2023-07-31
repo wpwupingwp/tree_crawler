@@ -59,21 +59,6 @@ def get_doi(raw_doi: str, doi_type='default') -> str:
         return doi
 
 
-def is_valid_tree(content: str) -> bool:
-    # test if txt is newick or nexus
-    try:
-        tree = dendropy.Tree.get(data=content, schema='newick')
-        return True
-    except Exception:
-        pass
-    try:
-        tree = dendropy.Tree.get(data=content, schema='nexus')
-        return True
-    except Exception:
-        pass
-    return False
-
-
 async def download(session: aiohttp.ClientSession, download_url: str,
                    size: int) -> (bool, bytes):
     if size > MAX_SIZE:
@@ -89,17 +74,33 @@ async def download(session: aiohttp.ClientSession, download_url: str,
     return True, bin_data
 
 
+def is_valid_tree(tmpfile: Path) -> bool:
+    # test if file is newick or nexus tree
+    # if not, DELETE the file
+    content = tmpfile.read_text(errors='ignore')
+    try:
+        _ = dendropy.Tree.get(data=content, schema='newick')
+        return True
+    except Exception:
+        pass
+    try:
+        _ = dendropy.Tree.get(data=content, schema='nexus')
+        return True
+    except Exception:
+        pass
+    tmpfile.unlink()
+    return False
+
+
 def extract_tree(z: ZipFile):
     for file in z.namelist():
         suffix = Path(file).suffix.lower()
-        if suffix in TXT_SUFFIX:
+        if suffix in TXT_SUFFIX or suffix in NEXUS_SUFFIX:
             z.extract(file, path=OUT_FOLDER)
-            _ = OUT_FOLDER / file
-            content = _.read_text(errors='ignore')
-            if is_valid_tree(content):
+            tmpfile = OUT_FOLDER / file
+            if is_valid_tree(tmpfile):
                 yield file
             else:
-                _.unlink()
                 print('\t', file, 'is not tree file')
         elif suffix in TREE_SUFFIX:
             z.extract(file, path=OUT_FOLDER)

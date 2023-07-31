@@ -105,7 +105,7 @@ async def main(query_str: str):
     session = ClientSession()
     print(query_str)
     id_list = await fetch_id_list(session, query_str, retmax=RETMAX)
-    print2(len(id_list), 'records')
+    print(len(id_list), 'records')
     for i in range(0, len(id_list), BATCH_SIZE):
         print(i, i + BATCH_SIZE)
         batch_id_list = ','.join(id_list[i:(i + BATCH_SIZE)])
