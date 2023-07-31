@@ -6,6 +6,8 @@ from aiohttp import ClientSession
 from io import BytesIO
 from time import sleep
 
+from utils import Result
+
 BASE_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/'
 MONTH2NUM = {month_abbr[i]: f'{i:02d}' for i in range(1, 13)}
 # max fetch id number per request
@@ -70,7 +72,7 @@ async def fetch_article_info(session: ClientSession, id_list: str) -> dict:
     return parsed['PubmedArticle']
 
 
-def parse_article_info(info):
+def parse_article_info(info: dict) -> Result:
     article = info['MedlineCitation']['Article']
     # print2(article)
     pub_date = date2str(article['Journal']['JournalIssue']['PubDate'])
@@ -86,7 +88,7 @@ def parse_article_info(info):
     journal_name = article['Journal']['Title']
     title = article['ArticleTitle']
     if 'Abstract' in article:
-        abstract = article['Abstract']['AbstractText']
+        abstract = ''.join(article['Abstract']['AbstractText'])
     else:
         abstract = ''
     if 'AuthorList' in article:
@@ -96,9 +98,9 @@ def parse_article_info(info):
                 author += f', {a["ForeName"]} {a["LastName"]}'
     else:
         author = ''
-    return dict(doi=doi, journal_name=journal_name, title=title,
-                pub_date=pub_date, author=author, abstract=abstract,
-                volume=volume, issue=issue)
+    return Result(doi=doi, journal_name=journal_name, title=title,
+                  pub_date=pub_date, author=author, abstract=abstract,
+                  volume=volume, issue=issue)
 
 
 async def main(query_str: str):
