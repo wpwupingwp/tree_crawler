@@ -1,24 +1,17 @@
-import re
-from dataclasses import dataclass
 from pathlib import Path
 import asyncio
 
 from aiohttp import ClientSession
 
-from dryad import filter_tree_from_zip, is_valid_tree
-from dryad import download, Result, get_doi
+from utils import filter_tree_from_zip, is_valid_tree
+from utils import download, Result, get_doi
+from utils import TREE_SUFFIX, ZIP_SUFFIX, TXT_SUFFIX, OUT_FOLDER
 
 # figshare item type id
 DATASET = 3
 SERVER = 'https://api.figshare.com/v2'
-TREE_SUFFIX = '.nwk,.newick,.nex,.nexus,.tre,.tree,.treefile'.split(',')
-MAX_SIZE = 1024 * 1024 * 10
 
 NEXUS_SUFFIX = '.nex,.nexus'.split(',')
-ZIP_SUFFIX = '.zip'
-OUT_FOLDER = Path(r'R:\dryad_out')
-if not OUT_FOLDER.exists():
-    OUT_FOLDER.mkdir()
 # https://api.figshare.com/v2/file/download/17716346 fail 403
 test_doi = ['10.1021/ja953595k'
             '10.1371/journal.pbio.0040073',
@@ -92,10 +85,10 @@ async def get_trees_by_doi(session: ClientSession, doi: str) -> Result:
             # todo: assume filenames are all unique!
             out_file.write_bytes(bin_data)
             all_tree_files.append(out_file)
-        elif filename.suffix.lower() == '.zip':
+        elif filename.suffix.lower() in ZIP_SUFFIX:
             tree_files = filter_tree_from_zip(bin_data)
             all_tree_files.extend(tree_files)
-        elif filename.suffix.lower() == '.txt':
+        elif filename.suffix.lower() in TXT_SUFFIX:
             content = bin_data.decode()
             if is_valid_tree(content):
                 out_file.write_bytes(bin_data)
