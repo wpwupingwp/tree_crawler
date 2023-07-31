@@ -32,8 +32,6 @@ test_doi = ['10.1021/ja953595k'
             '10.1186/s12864-019-6114-2']
 
 
-
-
 async def search_doi(session: ClientSession, raw_doi: str) -> list:
     # search article doi in figshare
     # some article do not have doi info in figshare
