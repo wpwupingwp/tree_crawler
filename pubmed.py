@@ -4,7 +4,6 @@ from calendar import month_abbr
 import asyncio
 from aiohttp import ClientSession
 from io import BytesIO
-from time import sleep
 
 from utils import Result
 
@@ -44,8 +43,6 @@ def parse_entrez_result(data: bytes) -> dict:
     tmp.write(data)
     tmp.seek(0)
     parsed = Entrez.read(tmp)
-    # NCBI limit 3 requests per second
-    sleep(0.3)
     return parsed
 
 
@@ -111,6 +108,8 @@ async def main(query_str: str):
     for i in range(0, len(id_list), BATCH_SIZE):
         print(i, i + BATCH_SIZE)
         batch_id_list = ','.join(id_list[i:(i + BATCH_SIZE)])
+        # NCBI limit 3 requests per second
+        await asyncio.sleep(0.3)
         batch_article_info = await fetch_article_info(session, batch_id_list)
         for record in batch_article_info:
             article_info = parse_article_info(record)
