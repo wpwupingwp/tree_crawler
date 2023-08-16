@@ -1,9 +1,10 @@
+import aiofile
 from Bio import Entrez
-import json
-from calendar import month_abbr
-import asyncio
 from aiohttp import ClientSession
+from calendar import month_abbr
 from io import BytesIO
+import asyncio
+import json
 
 from utils import Result
 
@@ -33,7 +34,10 @@ def print2(data):
 def date2str(date_raw: dict) -> str:
     year = date_raw['Year']
     month = MONTH2NUM[date_raw['Month']]
-    day = date_raw['Day']
+    try:
+        day = date_raw['Day']
+    except KeyError:
+        day = '01'
     return f'{year}/{month}/{day}'
 
 
@@ -100,28 +104,40 @@ def parse_article_info(info: dict) -> Result:
                   volume=volume, issue=issue)
 
 
-async def main(query_str: str):
+async def main(start_date: str, end_date: str, journal: str):
+    query_str = (f'''("{journal}"[Journal]) AND 
+    ("{start_date}"[Date - Publication] : "{end_date}"[Date - Publication])''')
+    out = (start_date.replace('/', '') + '_' +
+           end_date.replace('/', '') + '_' +
+           journal.replace(' ', '') + '.json')
+    handle = await aiofile.async_open(out, 'w', encoding='utf-8')
     session = ClientSession()
     print(query_str)
     id_list = await fetch_id_list(session, query_str, retmax=RETMAX)
     print(len(id_list), 'records')
     for i in range(0, len(id_list), BATCH_SIZE):
-        print(i, i + BATCH_SIZE)
+        print('\t', i, i + BATCH_SIZE)
         batch_id_list = ','.join(id_list[i:(i + BATCH_SIZE)])
         # NCBI limit 3 requests per second
         await asyncio.sleep(0.3)
         batch_article_info = await fetch_article_info(session, batch_id_list)
         for record in batch_article_info:
             article_info = parse_article_info(record)
-            # yield article_info
-            print(article_info)
+            print('\t', article_info.doi)
+            json_result = article_info.to_dict()
+            await handle.write(json.dumps(json_result) + '\n')
     await session.close()
+    await handle.close()
+    print('Output file', out)
+    return
 
 
 if __name__ == '__main__':
-    journal = 'Molecular Biology and Evolution'
-    start_date = '2023/06/01'
-    end_date = '2023/07/01'
-    query_str = (f'''("{journal}"[Journal]) AND 
-    ("{start_date}"[Date - Publication] : "{end_date}"[Date - Publication])''')
-    asyncio.run(main(query_str))
+    # journal = 'Molecular Biology and Evolution'
+    # start_date = '2023/07/01'
+    # end_date = '2022/07/15'
+    start_date = '2022/01/01'
+    end_date = '2022/01/02'
+    for journal in get_journal_list():
+        print(journal)
+        asyncio.run(main(start_date, end_date, journal))

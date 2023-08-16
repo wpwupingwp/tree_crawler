@@ -1,10 +1,11 @@
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from io import BytesIO
 from pathlib import Path
 from zipfile import ZipFile
 import re
 
 import aiohttp
+import aiofile
 import dendropy
 
 MAX_SIZE = 1024 * 1024 * 10
@@ -36,8 +37,15 @@ class Result:
     def empty(self):
         return len(self.tree_files) == 0
 
+    # todo: add tree content and info
     def add_trees(self, trees: list[Path]):
         self.tree_files = tuple(trees)
+
+    def to_dict(self):
+        return asdict(self)
+
+    def to_sql(self):
+        pass
 
 
 def get_doi(raw_doi: str, doi_type='default') -> str:
