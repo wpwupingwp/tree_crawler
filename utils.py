@@ -3,12 +3,12 @@ from io import BytesIO
 from pathlib import Path
 from zipfile import ZipFile, BadZipfile
 import re
+import logging
 
 import aiohttp
-import asyncio
 import dendropy
 
-MAX_SIZE = 1024 * 1024 * 20
+MAX_SIZE = 1024 * 1024 * 50
 proxy = 'http://127.0.0.1:7890'
 
 NEXUS_SUFFIX = set('.nex,.nexus'.split(','))
@@ -20,6 +20,7 @@ OUT_FOLDER = Path(r'R:\tree_crawl_out').absolute()
 if not OUT_FOLDER.exists():
     OUT_FOLDER.mkdir()
 
+log = logging.getLogger('fetch_tree')
 
 @dataclass
 class Result:
@@ -79,16 +80,25 @@ def get_doi(raw_doi: str, doi_type='default') -> str:
 
 async def download(session: aiohttp.ClientSession, download_url: str,
                    size: int) -> (bool, bytes):
+    retry_n = 5
     if size > MAX_SIZE:
         print(download_url, 'too big', size, 'bp')
         return False, b''
-    print('Downloading', download_url.removesuffix('/download'), size, 'bp')
-    async with session.get(download_url, proxy=proxy) as resp:
-        if not resp.ok:
-            print(f'Download {download_url} fail', resp.status)
-            return False, b''
-        bin_data = await resp.read()
-    print('Got', download_url)
+    log.info(f'Downloading {download_url.removesuffix("/download")} {size} bp')
+    while retry_n > 0:
+        async with session.get(download_url, proxy=proxy) as resp:
+            if not resp.ok:
+                print(f'Download {download_url} fail', resp.status)
+                return False, b''
+            bin_data = await resp.read()
+            target_size = int(resp.headers.get('content-length', 0))
+            actual_size = len(bin_data)
+            if target_size != len(bin_data):
+                log.warning(f'Size mismatch {target_size} != {actual_size}')
+                retry_n -= 1
+            else:
+                break
+    log.info('Got '+download_url)
     return True, bin_data
 
 
@@ -114,7 +124,7 @@ def extract_tree(z: ZipFile, out_folder: Path):
     for file in z.namelist():
         suffix = Path(file).suffix.lower()
         if suffix not in TARGET_SUFFIX:
-            print('\t', file, 'is not tree file')
+            log.warning(file+' is not tree')
             continue
         tmpfile = out_folder / file
         z.extract(file, path=out_folder)
@@ -122,13 +132,13 @@ def extract_tree(z: ZipFile, out_folder: Path):
             if is_valid_tree(tmpfile):
                 yield tmpfile
             else:
-                print('\t', file, 'is not tree file')
+                log.warning(file + ' is not tree')
                 tmpfile.unlink()
         elif suffix in TREE_SUFFIX:
             z.extract(file, path=out_folder)
             yield tmpfile
         elif suffix in ZIP_SUFFIX:
-            print('\t', 'Extracting', file)
+            log.info('Extracting '+file)
             z.extract(file, path=out_folder)
             with ZipFile(out_folder / file, 'r') as zz:
                 yield from extract_tree(zz, out_folder)
@@ -146,5 +156,5 @@ def filter_tree_from_zip(file_bin: bytes, out_folder: Path) -> list:
             for tree_file in extract_tree(z, out_folder):
                 tree_files.append(tree_file)
     except BadZipfile:
-        print('Bad zip file')
+        log.critical('Bad zip file')
     return tree_files
