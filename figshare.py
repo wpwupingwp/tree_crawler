@@ -88,12 +88,12 @@ async def get_trees_by_doi(session: ClientSession, doi: str) -> Result:
             tree_files = filter_tree_from_zip(bin_data)
             all_tree_files.extend(tree_files)
         elif filename.suffix.lower() in TXT_SUFFIX:
-            content = bin_data.decode()
-            if is_valid_tree(content):
-                out_file.write_bytes(bin_data)
+            out_file.write_bytes(bin_data)
+            if is_valid_tree(out_file):
                 all_tree_files.append(out_file)
             else:
                 print('not valid tree', filename)
+                out_file.unlink()
         else:
             pass
     result.add_trees(all_tree_files)

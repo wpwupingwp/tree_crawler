@@ -86,7 +86,6 @@ def is_valid_tree(tmpfile: Path) -> bool:
     # test if file is newick or nexus tree
     # if not, DELETE the file
     content = tmpfile.read_text(errors='ignore')
-    print(content[:100])
     try:
         _ = dendropy.Tree.get(data=content, schema='newick')
         return True
@@ -97,7 +96,6 @@ def is_valid_tree(tmpfile: Path) -> bool:
         return True
     except Exception:
         pass
-    tmpfile.unlink()
     return False
 
 
@@ -112,6 +110,7 @@ def extract_tree(z: ZipFile):
                 yield file
             else:
                 print('\t', file, 'is not tree file')
+                tmpfile.unlink()
         elif suffix in TREE_SUFFIX:
             z.extract(file, path=OUT_FOLDER)
             yield file
