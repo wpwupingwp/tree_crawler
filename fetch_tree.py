@@ -2,17 +2,45 @@ from pathlib import Path
 import asyncio
 import json
 
-from dryad import dryad_main
-from figshare import figshare_main
+import aiohttp
 
-result_jsons = list(Path().glob('*.json'))
-for result_json in result_jsons[:1]:
-    print(result_json)
-    data = json.load(result_json.open())
-    doi_list = [i['doi'] for i in data][:10]
-    figshare_result = asyncio.run(figshare_main(doi_list))
-    dryad_result = asyncio.run(dryad_main(doi_list))
-    with open('dryad.json', 'w') as f:
-        json.dump([i.to_dict() for i in dryad_result], f)
-    with open('figshare.json', 'w') as f:
-        json.dump([i.to_dict() for i in figshare_result], f)
+from dryad import get_trees_dryad
+from figshare import get_trees_figshare
+
+
+async def main():
+    # pubmed result json
+    input_json = list(Path().glob('2*.json'))
+    results = list()
+    for result_json in input_json[:1]:
+        print(result_json)
+        data = json.load(result_json.open())
+    count = 0
+    count_have_tree = 0
+    async with aiohttp.ClientSession() as session:
+        for record in data:
+            # API limit
+            await asyncio.sleep(2)
+            count += 1
+            doi = record['doi']
+            print(doi, 'figshare')
+            result = await get_trees_figshare(session, doi)
+            if not result.have_tree():
+                print(doi, 'dryad')
+                result = await get_trees_dryad(session, doi)
+            if not result.have_tree():
+                print('No result', doi)
+                continue
+            count_have_tree += 1
+            record['tree_files'] = tuple(result.tree_files)
+            results.append(record)
+    print(count, 'records')
+    print(count_have_tree, 'have trees')
+    print('Writing results...')
+    with open('result.json', 'w') as f:
+        json.dump(results, f)
+    return
+
+
+if __name__ == '__main__':
+    asyncio.run(main())

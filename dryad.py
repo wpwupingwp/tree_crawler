@@ -58,8 +58,6 @@ async def search_doi_in_dryad(session: aiohttp.ClientSession, doi: str) -> (
 
 
 async def get_trees_dryad(session, doi_raw: str) -> Result:
-    sleep(0.5)
-    print(doi_raw)
     doi = get_doi(doi_raw)
     identifier, title, size = await search_doi_in_dryad(session, doi)
     result = Result(title, identifier, doi)

@@ -45,6 +45,9 @@ class Result:
     def add_trees(self, trees: list[Path]):
         self.tree_files = tuple(trees)
 
+    def have_tree(self):
+        return len(self.tree_files) > 0
+
     def to_dict(self):
         return asdict(self)
 

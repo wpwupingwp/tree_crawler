@@ -46,8 +46,6 @@ async def search_doi_in_figshare(session: ClientSession, raw_doi: str) -> list:
 
 
 async def get_trees_figshare(session: ClientSession, doi: str) -> Result:
-    sleep(0.5)
-    print(doi)
     article_urls = await search_doi_in_figshare(session, doi)
     if len(article_urls) == 0:
         return Result(doi=doi)
