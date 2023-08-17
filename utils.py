@@ -12,8 +12,8 @@ MAX_SIZE = 1024 * 1024 * 10
 
 NEXUS_SUFFIX = '.nex,.nexus'.split(',')
 TREE_SUFFIX = set('.nwk,.newick,.nex,.nexus,.tre,.tree,.treefile'.split(','))
-TXT_SUFFIX = set('.txt')
-ZIP_SUFFIX = set('.zip')
+TXT_SUFFIX = set(['.txt'])
+ZIP_SUFFIX = set(['.zip'])
 OUT_FOLDER = Path(r'R:\dryad_out')
 if not OUT_FOLDER.exists():
     OUT_FOLDER.mkdir()
