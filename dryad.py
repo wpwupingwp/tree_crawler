@@ -4,6 +4,7 @@ import aiohttp
 
 from utils import get_doi, Result, download
 from utils import filter_tree_from_zip
+from utils import OUT_FOLDER
 
 server = 'https://datadryad.org/api/v2'
 NEXUS_SUFFIX = '.nex,.nexus'.split(',')
@@ -57,7 +58,6 @@ async def search_doi(session: aiohttp.ClientSession, doi: str) -> (
 
 async def get_trees_by_doi(session, doi_raw: str) -> Result:
     doi = get_doi(doi_raw)
-    tree_files = list()
     identifier, title, size = await search_doi(session, doi)
     result = Result(title, identifier, doi)
     if identifier == '':
@@ -67,7 +67,9 @@ async def get_trees_by_doi(session, doi_raw: str) -> Result:
     if not ok:
         return result
     else:
-        tree_files = filter_tree_from_zip(bin_data)
+        out_folder = OUT_FOLDER / get_doi(doi, doi_type='folder')
+        out_folder.mkdir(exist_ok=True)
+        tree_files = filter_tree_from_zip(bin_data, out_folder)
         result.add_trees(tree_files)
     return result
 

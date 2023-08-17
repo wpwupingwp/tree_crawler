@@ -76,16 +76,19 @@ async def get_trees_by_doi(session: ClientSession, doi: str) -> Result:
     all_tree_files = list()
     for x, y in zip(downloads, to_download):
         ok, bin_data = x
-        *_, filename = y
-        out_file = OUT_FOLDER / filename
+        download_url, filesize, filename = y
         if not ok:
             continue
+        file_id = download_url.split('/')[-1]
+        out_folder = OUT_FOLDER / file_id
+        out_folder.mkdir(exist_ok=True)
+        out_file = out_folder / filename
         if filename in TREE_SUFFIX:
             # todo: assume filenames are all unique!
             out_file.write_bytes(bin_data)
             all_tree_files.append(out_file)
         elif filename.suffix.lower() in ZIP_SUFFIX:
-            tree_files = filter_tree_from_zip(bin_data)
+            tree_files = filter_tree_from_zip(bin_data, out_folder)
             all_tree_files.extend(tree_files)
         elif filename.suffix.lower() in TXT_SUFFIX:
             out_file.write_bytes(bin_data)
@@ -94,8 +97,9 @@ async def get_trees_by_doi(session: ClientSession, doi: str) -> Result:
             else:
                 print('not valid tree', filename)
                 out_file.unlink()
+                out_folder.rmdir()
         else:
-            pass
+            out_folder.rmdir()
     result.add_trees(all_tree_files)
     return result
 
