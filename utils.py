@@ -5,7 +5,7 @@ from zipfile import ZipFile
 import re
 
 import aiohttp
-import aiofile
+import asyncio
 import dendropy
 
 MAX_SIZE = 1024 * 1024 * 10
@@ -79,6 +79,7 @@ async def download(session: aiohttp.ClientSession, download_url: str,
         print(download_url, 'too big', size, 'bp')
         return False, b''
     print('Downloading', download_url.removesuffix('/download'), size, 'bp')
+    await asyncio.sleep(0.5)
     async with session.get(download_url) as resp:
         if not resp.ok:
             print(f'Download {download_url} fail', resp.status)

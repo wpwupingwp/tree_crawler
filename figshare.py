@@ -1,4 +1,5 @@
 from pathlib import Path
+from time import sleep
 import asyncio
 
 from aiohttp import ClientSession
@@ -9,7 +10,7 @@ from utils import TREE_SUFFIX, ZIP_SUFFIX, TXT_SUFFIX, OUT_FOLDER
 
 # figshare item type id
 DATASET = 3
-SERVER = 'https://api.figshare.com/v2'
+FIGSHARE_SERVER = 'https://api.figshare.com/v2'
 
 # https://api.figshare.com/v2/file/download/17716346 fail 403
 test_doi = ['10.1021/ja953595k'
@@ -24,12 +25,12 @@ test_doi = ['10.1021/ja953595k'
             '10.1186/s12864-019-6114-2']
 
 
-async def search_doi(session: ClientSession, raw_doi: str) -> list:
+async def search_doi_in_figshare(session: ClientSession, raw_doi: str) -> list:
     # search article doi in figshare
     # some article do not have doi info in figshare
     # searching article title in figshare return unrelated articles
     # consider search by "phylogeny" and time range?
-    search_url = f'{SERVER}/articles/search'
+    search_url = f'{FIGSHARE_SERVER}/articles/search'
     doi = get_doi(raw_doi=raw_doi)
     # search_for = ':title: phylogeny'
     params = {'item_type': DATASET, 'search_for': f':resource_doi: {doi}'}
@@ -44,8 +45,10 @@ async def search_doi(session: ClientSession, raw_doi: str) -> list:
     return article_urls
 
 
-async def get_trees_by_doi(session: ClientSession, doi: str) -> Result:
-    article_urls = await search_doi(session, doi)
+async def get_trees_figshare(session: ClientSession, doi: str) -> Result:
+    sleep(0.5)
+    print(doi)
+    article_urls = await search_doi_in_figshare(session, doi)
     if len(article_urls) == 0:
         return Result(doi=doi)
     to_download = list()
@@ -60,7 +63,7 @@ async def get_trees_by_doi(session: ClientSession, doi: str) -> Result:
             for i in article_info['files']:
                 filename = Path(i['name'])
                 file_id = i['id']
-                download_url = f'{SERVER}/file/download/{file_id}'
+                download_url = f'{FIGSHARE_SERVER}/file/download/{file_id}'
                 file_suffix = filename.suffix.lower()
                 # figshare have name info before download and extraction
                 if (file_suffix not in TREE_SUFFIX) and (
@@ -107,7 +110,7 @@ async def get_trees_by_doi(session: ClientSession, doi: str) -> Result:
 async def figshare_main(doi_list: list) -> list:
     async with ClientSession() as session:
         results = await asyncio.gather(
-            *[get_trees_by_doi(session, doi) for doi in doi_list],
+            *[get_trees_figshare(session, doi) for doi in doi_list],
             return_exceptions=True)
     for i in results:
         if isinstance(i, Exception):

@@ -1,4 +1,5 @@
 import asyncio
+from time import sleep
 
 import aiohttp
 
@@ -6,7 +7,7 @@ from utils import get_doi, Result, download
 from utils import filter_tree_from_zip
 from utils import OUT_FOLDER
 
-server = 'https://datadryad.org/api/v2'
+DRYAD_SERVER = 'https://datadryad.org/api/v2'
 NEXUS_SUFFIX = '.nex,.nexus'.split(',')
 
 test_doi = ['10.1101/2020.10.08.331355',
@@ -25,13 +26,13 @@ def get_dryad_url(identifier: str) -> str:
     # convert dryad doi to dryad download url
     # dryad requires escaped url
     dryad_doi = identifier.replace(':', '%3A').replace('/', '%2F')
-    download_url = f'{server}/datasets/{dryad_doi}/download'
+    download_url = f'{DRYAD_SERVER}/datasets/{dryad_doi}/download'
     return download_url
 
 
-async def search_doi(session: aiohttp.ClientSession, doi: str) -> (
+async def search_doi_in_dryad(session: aiohttp.ClientSession, doi: str) -> (
         str, str, int):
-    search_url = f'{server}/search'
+    search_url = f'{DRYAD_SERVER}/search'
     # todo: search doi?
     params = {'q': doi, 'page': 1, 'per_page': 2}
     async with session.get(search_url, params=params) as resp:
@@ -56,9 +57,11 @@ async def search_doi(session: aiohttp.ClientSession, doi: str) -> (
         return identifier, title, size
 
 
-async def get_trees_by_doi(session, doi_raw: str) -> Result:
+async def get_trees_dryad(session, doi_raw: str) -> Result:
+    sleep(0.5)
+    print(doi_raw)
     doi = get_doi(doi_raw)
-    identifier, title, size = await search_doi(session, doi)
+    identifier, title, size = await search_doi_in_dryad(session, doi)
     result = Result(title, identifier, doi)
     if identifier == '':
         return result
@@ -77,7 +80,7 @@ async def get_trees_by_doi(session, doi_raw: str) -> Result:
 async def dryad_main(doi_list: list) -> list:
     async with aiohttp.ClientSession() as session:
         results = await asyncio.gather(
-            *[get_trees_by_doi(session, doi) for doi in doi_list])
+            *[get_trees_dryad(session, doi) for doi in doi_list])
     for i in results:
         if i.empty():
             print('Empty', i)
