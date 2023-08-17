@@ -11,7 +11,8 @@ from utils import Result
 BASE_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/'
 MONTH2NUM = {month_abbr[i]: f'{i:02d}' for i in range(1, 13)}
 # max fetch id number per request
-RETMAX = 1000
+RETMAX = 10000
+# RETMAX = 1 # for test only
 # fetch article info per request
 BATCH_SIZE = 100
 # todo
@@ -77,8 +78,8 @@ def parse_article_info(info: dict) -> Result:
     article = info['MedlineCitation']['Article']
     # print2(article)
     pub_date = date2str(article['Journal']['JournalIssue']['PubDate'])
-    volume = article['Journal']['JournalIssue']['Volume']
-    issue = article['Journal']['JournalIssue']['Issue']
+    volume = article['Journal']['JournalIssue'].get('Volume', '')
+    issue = article['Journal']['JournalIssue'].get('Issue', '')
     article_id_list = article['ELocationID']
     doi = ''
     for _ in article_id_list:
@@ -107,28 +108,35 @@ def parse_article_info(info: dict) -> Result:
 async def main(start_date: str, end_date: str, journal: str):
     query_str = (f'''("{journal}"[Journal]) AND 
     ("{start_date}"[Date - Publication] : "{end_date}"[Date - Publication])''')
-    out = (start_date.replace('/', '') + '_' +
-           end_date.replace('/', '') + '_' +
-           journal.replace(' ', '') + '.json')
-    handle = await aiofile.async_open(out, 'w', encoding='utf-8')
     session = ClientSession()
     print(query_str)
     id_list = await fetch_id_list(session, query_str, retmax=RETMAX)
+    result_list = list()
     print(len(id_list), 'records')
     for i in range(0, len(id_list), BATCH_SIZE):
-        print('\t', i, i + BATCH_SIZE)
         batch_id_list = ','.join(id_list[i:(i + BATCH_SIZE)])
         # NCBI limit 3 requests per second
-        await asyncio.sleep(0.3)
-        batch_article_info = await fetch_article_info(session, batch_id_list)
+        while True:
+            print('\t', i, i + BATCH_SIZE)
+            await asyncio.sleep(0.3)
+            try:
+                batch_article_info = await fetch_article_info(session, batch_id_list)
+                break
+            except Exception as e:
+                print(e)
+                pass
         for record in batch_article_info:
             article_info = parse_article_info(record)
             print('\t', article_info.doi)
-            json_result = article_info.to_dict()
-            await handle.write(json.dumps(json_result) + '\n')
+            result_list.append(article_info.to_dict())
+    # output
+    out_file = (start_date.replace('/', '') + '-' +
+                end_date.replace('/', '') + '-' +
+                journal.replace(' ', '_') + '.json')
+    async with aiofile.async_open(out_file, 'w', encoding='utf-8') as out:
+        await out.write(json.dumps(result_list))
     await session.close()
-    await handle.close()
-    print('Output file', out)
+    print('Output file', out_file)
     return
 
 
@@ -136,8 +144,11 @@ if __name__ == '__main__':
     # journal = 'Molecular Biology and Evolution'
     # start_date = '2023/07/01'
     # end_date = '2022/07/15'
-    start_date = '2022/01/01'
-    end_date = '2022/01/02'
-    for journal in get_journal_list():
-        print(journal)
-        asyncio.run(main(start_date, end_date, journal))
+    # PNAS too many articles
+    start_date = '2020/01/01'
+    end_date = '2023/07/31'
+    for start_date, end_date in (('2020/01/01', '2020/12/31'),):
+        print(start_date, end_date)
+        for journal in get_journal_list()[16:]:
+            print(start_date, end_date)
+            asyncio.run(main(start_date, end_date, journal))
