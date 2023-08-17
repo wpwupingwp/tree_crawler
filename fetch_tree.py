@@ -13,7 +13,10 @@ FMT = '%(asctime)s %(levelname)-8s %(message)s'
 DATEFMT = '%H:%M:%S'
 logging.basicConfig(format=FMT, datefmt=DATEFMT, level=logging.INFO)
 log = logging.getLogger('fetch_tree')
-log.addHandler(logging.FileHandler('log.txt'))
+fmt = logging.Formatter(FMT, DATEFMT)
+file_handler = logging.FileHandler('log.txt', 'a')
+file_handler.setFormatter(fmt)
+log.addHandler(file_handler)
 coloredlogs.install(level=logging.INFO, fmt=FMT, datefmt=DATEFMT)
 
 
@@ -21,7 +24,7 @@ async def main():
     # pubmed result json
     input_jsons = list(Path().glob('2*.json'))
     results = list()
-    for input_json in input_jsons[:1]:
+    for input_json in input_jsons[1:]:
         log.info(input_json)
         data = json.load(input_json.open())
         count = 0
@@ -50,7 +53,7 @@ async def main():
         print(count_have_tree, 'have trees')
         output_json = input_json.with_suffix('.result.json')
         print('Writing results', output_json)
-        with open('result.json', 'w') as f:
+        with open(output_json, 'w') as f:
             json.dump(results, f)
     return
 
