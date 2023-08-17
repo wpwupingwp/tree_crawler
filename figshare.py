@@ -1,6 +1,6 @@
 from pathlib import Path
-from time import sleep
 import asyncio
+import logging
 
 from aiohttp import ClientSession
 
@@ -11,6 +11,7 @@ from utils import TREE_SUFFIX, ZIP_SUFFIX, TXT_SUFFIX, OUT_FOLDER
 # figshare item type id
 DATASET = 3
 FIGSHARE_SERVER = 'https://api.figshare.com/v2'
+log = logging.getLogger('fetch_tree')
 
 # https://api.figshare.com/v2/file/download/17716346 fail 403
 test_doi = ['10.1021/ja953595k'
@@ -36,7 +37,7 @@ async def search_doi_in_figshare(session: ClientSession, raw_doi: str) -> list:
     params = {'item_type': DATASET, 'search_for': f':resource_doi: {doi}'}
     async with session.post(search_url, params=params) as resp:
         if not resp.ok:
-            print(raw_doi, resp.ok)
+            log.error(f'Search fail {raw_doi} {resp.ok}')
             return list()
         article_list = await resp.json()
         if len(article_list) == 0:
@@ -66,10 +67,10 @@ async def get_trees_figshare(session: ClientSession, doi: str) -> Result:
                 # figshare have name info before download and extraction
                 if (file_suffix not in TREE_SUFFIX) and (
                         file_suffix not in ('.txt', '.zip')):
-                    print('Skip', filename, 'in', doi)
+                    log.info(f'Skip {filename} in {doi}')
                     continue
                 else:
-                    print(filename, 'may be a tree file')
+                    log.info(filename+' may be a tree file')
                 to_download.append((download_url, i['size'], filename))
     result = Result(title, identifier, doi)
     downloads = await asyncio.gather(*[download(session, download_url, size) for
@@ -96,7 +97,7 @@ async def get_trees_figshare(session: ClientSession, doi: str) -> Result:
             if is_valid_tree(out_file):
                 all_tree_files.append(out_file)
             else:
-                print('not valid tree', filename)
+                log.info(f'{filename} is not valid tree')
                 out_file.unlink()
                 out_folder.rmdir()
         else:

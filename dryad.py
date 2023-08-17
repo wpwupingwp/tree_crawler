@@ -1,5 +1,5 @@
 import asyncio
-from time import sleep
+import logging
 
 import aiohttp
 
@@ -9,6 +9,7 @@ from utils import OUT_FOLDER
 
 DRYAD_SERVER = 'https://datadryad.org/api/v2'
 NEXUS_SUFFIX = '.nex,.nexus'.split(',')
+log = logging.getLogger('fetch_tree')
 
 test_doi = ['10.1101/2020.10.08.331355',
             '10.1111/jbi.13789',
