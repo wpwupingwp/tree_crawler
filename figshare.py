@@ -104,8 +104,7 @@ async def get_trees_by_doi(session: ClientSession, doi: str) -> Result:
     return result
 
 
-async def main(doi_list: list):
-    title_trees = dict()
+async def figshare_main(doi_list: list) -> list:
     async with ClientSession() as session:
         results = await asyncio.gather(
             *[get_trees_by_doi(session, doi) for doi in doi_list],
@@ -117,8 +116,8 @@ async def main(doi_list: list):
             print('Empty', i)
         else:
             print(i)
-    return title_trees
+    return results
 
 
 if __name__ == '__main__':
-    asyncio.run(main(test_doi))
+    asyncio.run(figshare_main(test_doi))

@@ -35,6 +35,9 @@ class Result:
     volume: int = 0
     tree_files: tuple[Path] = tuple()
 
+    def __hash__(self):
+        return hash(self.doi)
+
     def empty(self):
         return len(self.tree_files) == 0
 
