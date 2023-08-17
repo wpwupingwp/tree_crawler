@@ -1,14 +1,15 @@
 from dataclasses import asdict, dataclass
 from io import BytesIO
 from pathlib import Path
-from zipfile import ZipFile
+from zipfile import ZipFile, BadZipfile
 import re
 
 import aiohttp
 import asyncio
 import dendropy
 
-MAX_SIZE = 1024 * 1024 * 10
+MAX_SIZE = 1024 * 1024 * 20
+proxy = 'http://127.0.0.1:7890'
 
 NEXUS_SUFFIX = set('.nex,.nexus'.split(','))
 TREE_SUFFIX = set('.nwk,.newick,.nex,.nexus,.tre,.tree,.treefile'.split(','))
@@ -33,7 +34,7 @@ class Result:
     pub_date: str = ''
     title: str = ''
     volume: int = 0
-    tree_files: tuple[Path] = tuple()
+    tree_files: tuple[str] = tuple()
 
     def __hash__(self):
         return hash(self.doi)
@@ -43,7 +44,7 @@ class Result:
 
     # todo: add tree content and info
     def add_trees(self, trees: list[Path]):
-        self.tree_files = tuple(trees)
+        self.tree_files = tuple([str(i) for i in trees])
 
     def have_tree(self):
         return len(self.tree_files) > 0
@@ -82,8 +83,7 @@ async def download(session: aiohttp.ClientSession, download_url: str,
         print(download_url, 'too big', size, 'bp')
         return False, b''
     print('Downloading', download_url.removesuffix('/download'), size, 'bp')
-    await asyncio.sleep(0.5)
-    async with session.get(download_url) as resp:
+    async with session.get(download_url, proxy=proxy) as resp:
         if not resp.ok:
             print(f'Download {download_url} fail', resp.status)
             return False, b''
@@ -141,7 +141,10 @@ def filter_tree_from_zip(file_bin: bytes, out_folder: Path) -> list:
     # filter tree files from zip
     # extract trees into OUT_FOLDER/
     tree_files = list()
-    with ZipFile(BytesIO(file_bin), 'r') as z:
-        for tree_file in extract_tree(z, out_folder):
-            tree_files.append(tree_file)
+    try:
+        with ZipFile(BytesIO(file_bin), 'r') as z:
+            for tree_file in extract_tree(z, out_folder):
+                tree_files.append(tree_file)
+    except BadZipfile:
+        print('Bad zip file')
     return tree_files
