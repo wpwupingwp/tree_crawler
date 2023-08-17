@@ -1,3 +1,4 @@
+import asyncio
 from dataclasses import asdict, dataclass
 from io import BytesIO
 from pathlib import Path
@@ -82,7 +83,7 @@ async def download(session: aiohttp.ClientSession, download_url: str,
                    size: int) -> (bool, bytes):
     retry_n = 5
     if size > MAX_SIZE:
-        print(download_url, 'too big', size, 'bp')
+        log.warning(download_url+' too big {size} bp')
         return False, b''
     log.info(f'Downloading {download_url.removesuffix("/download")} {size} bp')
     while retry_n > 0:
@@ -90,7 +91,12 @@ async def download(session: aiohttp.ClientSession, download_url: str,
             if not resp.ok:
                 print(f'Download {download_url} fail', resp.status)
                 return False, b''
-            bin_data = await resp.read()
+            try:
+                bin_data = await resp.read()
+            except asyncio.TimeoutError:
+                log.warning(f'Timeout {download_url}')
+                retry_n -= 1
+                continue
             target_size = int(resp.headers.get('content-length', 0))
             actual_size = len(bin_data)
             if target_size != len(bin_data):

@@ -22,7 +22,8 @@ coloredlogs.install(level=logging.INFO, fmt=FMT, datefmt=DATEFMT)
 
 async def main():
     # pubmed result json
-    input_jsons = list(Path().glob('2*.json'))
+    json_files = list(Path().glob('2*.json'))
+    input_jsons = [i for i in json_files if 'result' not in i.name]
     results = list()
     for input_json in input_jsons[1:]:
         log.info(input_json)
