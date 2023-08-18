@@ -136,18 +136,15 @@ def extract_tree(z: ZipFile, out_folder: Path):
             continue
         tmpfile = out_folder / file
         z.extract(file, path=out_folder)
-        if suffix in TXT_SUFFIX or suffix in NEXUS_SUFFIX:
+        if (suffix in TXT_SUFFIX or suffix in NEXUS_SUFFIX or
+                suffix in TREE_SUFFIX):
             if is_valid_tree(tmpfile):
                 yield tmpfile
             else:
                 log.warning(f'{file} is not tree')
                 tmpfile.unlink()
-        elif suffix in TREE_SUFFIX:
-            z.extract(file, path=out_folder)
-            yield tmpfile
         elif suffix in ZIP_SUFFIX:
             log.info(f'Extracting {file}')
-            z.extract(file, path=out_folder)
             with ZipFile(out_folder / file, 'r') as zz:
                 yield from extract_tree(zz, out_folder)
             tmpfile.unlink()
