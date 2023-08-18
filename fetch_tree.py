@@ -46,11 +46,11 @@ async def main():
         test2 = [{'doi': i} for i in test]
         async with aiohttp.ClientSession() as session:
             # for record in test2:
-            for record in data:
+            for record in data[checkpoint_n:]:
                 # API limit
                 await asyncio.sleep(2)
                 doi = record['doi']
-                log.info(f'{count+1} {doi}')
+                log.info(f'{count+checkpoint_n+1} {doi}')
                 result = await get_trees_figshare(session, doi)
                 if not result.have_tree():
                     result = await get_trees_dryad(session, doi)
