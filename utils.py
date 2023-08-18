@@ -93,7 +93,9 @@ async def download(session: aiohttp.ClientSession, download_url: str,
                 return False, b''
             try:
                 bin_data = await resp.read()
-            except Exception as e:
+            except KeyboardInterrupt:
+                raise
+            except BaseException as e:
                 log.warning(f'Download {download_url} fail {e}')
                 await asyncio.sleep(0.5)
                 retry_n -= 1
