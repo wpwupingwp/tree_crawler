@@ -87,26 +87,25 @@ async def download(session: aiohttp.ClientSession, download_url: str,
         return False, b''
     log.info(f'Downloading {download_url.removesuffix("/download")} {size} bp')
     while retry_n > 0:
-        async with session.get(download_url, proxy=proxy) as resp:
-            if not resp.ok:
-                print(f'Download {download_url} fail', resp.status)
-                return False, b''
-            try:
+        retry_n -= 1
+        try:
+            async with session.get(download_url, proxy=proxy) as resp:
+                if not resp.ok:
+                    print(f'Download {download_url} fail', resp.status)
+                    continue
                 bin_data = await resp.read()
-            except KeyboardInterrupt:
-                raise
-            except BaseException as e:
-                log.warning(f'Download {download_url} fail {e}')
-                await asyncio.sleep(0.5)
-                retry_n -= 1
-                continue
             target_size = int(resp.headers.get('content-length', 0))
             actual_size = len(bin_data)
             if target_size != len(bin_data):
-                log.warning(f'Size mismatch {target_size} != {actual_size}')
-                retry_n -= 1
+                log.warning(
+                    f'Size mismatch {target_size} != {actual_size}')
             else:
                 break
+        except KeyboardInterrupt:
+            raise
+        except BaseException as e:
+            log.warning(f'Download {download_url} fail {e}')
+            await asyncio.sleep(0.5)
     log.info(f'Got {download_url}')
     return True, bin_data
 
