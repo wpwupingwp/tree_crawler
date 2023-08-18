@@ -81,10 +81,12 @@ def get_doi(raw_doi: str, doi_type='default') -> str:
 
 async def download(session: aiohttp.ClientSession, download_url: str,
                    size: int) -> (bool, bytes):
+    ok = False
+    bin_data = b''
     retry_n = 10
     if size > MAX_SIZE:
         log.warning(f'{download_url} too big {size} bp')
-        return False, b''
+        return ok, bin_data
     log.info(f'Downloading {download_url.removesuffix("/download")} {size} bp')
     while retry_n > 0:
         retry_n -= 1
@@ -100,14 +102,18 @@ async def download(session: aiohttp.ClientSession, download_url: str,
                 log.warning(
                     f'Size mismatch {target_size} != {actual_size}')
             else:
+                ok = True
                 break
         except KeyboardInterrupt:
             raise
         except BaseException as e:
             log.warning(f'Download {download_url} fail {e}')
             await asyncio.sleep(0.5)
-    log.info(f'Got {download_url}')
-    return True, bin_data
+    if ok:
+        log.info(f'Got {download_url}')
+    else:
+        log.error(f'Download {download_url} fail with many tries')
+    return ok, bin_data
 
 
 def is_valid_tree(tmpfile: Path) -> bool:
