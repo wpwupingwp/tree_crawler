@@ -93,7 +93,8 @@ async def download(session: aiohttp.ClientSession, download_url: str,
         try:
             async with session.get(download_url, proxy=proxy) as resp:
                 if not resp.ok:
-                    print(f'Download {download_url} fail', resp.status)
+                    log.warning(f'Download {download_url} fail {resp.status}')
+                    await asyncio.sleep(0.5)
                     continue
                 bin_data = await resp.read()
             target_size = int(resp.headers.get('content-length', 0))
@@ -101,6 +102,7 @@ async def download(session: aiohttp.ClientSession, download_url: str,
             if target_size != len(bin_data):
                 log.warning(
                     f'Size mismatch {target_size} != {actual_size}')
+                await asyncio.sleep(0.5)
             else:
                 ok = True
                 break
