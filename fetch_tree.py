@@ -55,9 +55,7 @@ async def main():
                 if not result.have_tree():
                     result = await get_trees_dryad(session, doi)
                 count += 1
-                if not result.have_tree():
-                    continue
-                else:
+                if result.have_tree():
                     log.info(f'Found trees in {doi}')
                     count_have_tree += 1
                     record['tree_files'] = tuple(result.tree_files)
