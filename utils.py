@@ -81,9 +81,9 @@ def get_doi(raw_doi: str, doi_type='default') -> str:
 
 async def download(session: aiohttp.ClientSession, download_url: str,
                    size: int) -> (bool, bytes):
-    retry_n = 5
+    retry_n = 10
     if size > MAX_SIZE:
-        log.warning(download_url+' too big {size} bp')
+        log.warning(f'{download_url} too big {size} bp')
         return False, b''
     log.info(f'Downloading {download_url.removesuffix("/download")} {size} bp')
     while retry_n > 0:
@@ -93,8 +93,9 @@ async def download(session: aiohttp.ClientSession, download_url: str,
                 return False, b''
             try:
                 bin_data = await resp.read()
-            except asyncio.TimeoutError:
-                log.warning(f'Timeout {download_url}')
+            except Exception as e:
+                log.warning(f'Download {download_url} fail {e}')
+                await asyncio.sleep(0.5)
                 retry_n -= 1
                 continue
             target_size = int(resp.headers.get('content-length', 0))
@@ -104,7 +105,7 @@ async def download(session: aiohttp.ClientSession, download_url: str,
                 retry_n -= 1
             else:
                 break
-    log.info('Got '+download_url)
+    log.info(f'Got {download_url}')
     return True, bin_data
 
 
@@ -130,7 +131,7 @@ def extract_tree(z: ZipFile, out_folder: Path):
     for file in z.namelist():
         suffix = Path(file).suffix.lower()
         if suffix not in TARGET_SUFFIX:
-            log.warning(file+' is not tree')
+            log.warning(f'{file} is not tree')
             continue
         tmpfile = out_folder / file
         z.extract(file, path=out_folder)
@@ -138,13 +139,13 @@ def extract_tree(z: ZipFile, out_folder: Path):
             if is_valid_tree(tmpfile):
                 yield tmpfile
             else:
-                log.warning(file + ' is not tree')
+                log.warning(f'{file} is not tree')
                 tmpfile.unlink()
         elif suffix in TREE_SUFFIX:
             z.extract(file, path=out_folder)
             yield tmpfile
         elif suffix in ZIP_SUFFIX:
-            log.info('Extracting '+file)
+            log.info(f'Extracting {file}')
             z.extract(file, path=out_folder)
             with ZipFile(out_folder / file, 'r') as zz:
                 yield from extract_tree(zz, out_folder)

@@ -70,7 +70,7 @@ async def get_trees_figshare(session: ClientSession, doi: str) -> Result:
                     log.info(f'Skip {filename} in {doi}')
                     continue
                 else:
-                    log.info(filename+' may be a tree file')
+                    log.info(f'{filename} may be a tree file')
                 to_download.append((download_url, i['size'], filename))
     result = Result(title, identifier, doi)
     downloads = await asyncio.gather(*[download(session, download_url, size) for

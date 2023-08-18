@@ -19,41 +19,58 @@ file_handler.setFormatter(fmt)
 log.addHandler(file_handler)
 coloredlogs.install(level=logging.INFO, fmt=FMT, datefmt=DATEFMT)
 
+CHECK_SIZE = 50
+
 
 async def main():
     # pubmed result json
     json_files = list(Path().glob('2*.json'))
     input_jsons = [i for i in json_files if 'result' not in i.name]
     results = list()
-    for input_json in input_jsons[1:]:
+    for input_json in input_jsons[2:]:
         log.info(input_json)
+        output_json = input_json.with_suffix('.result.json')
+        checkpoint = input_json.with_suffix('.checkpoint')
+        if checkpoint.exists():
+            checkpoint_n = int(checkpoint.read_text().strip())
+            log.info(f'Load {checkpoint_n} records from checkpoint')
+            results = json.load(open(output_json, 'r'))
+        else:
+            checkpoint_n = 0
         data = json.load(input_json.open())
+        log.info(f'{len(data)} records')
         count = 0
         count_have_tree = 0
-        test = ['10.1002/ajb2.1682', '10.1002/ajb2.1738', '10.1002/ajb2.1797', '10.1002/ajb2.1453']
+        test = ['10.1002/ajb2.1682', '10.1002/ajb2.1738', '10.1002/ajb2.1797',
+                '10.1002/ajb2.1453']
         test2 = [{'doi': i} for i in test]
         async with aiohttp.ClientSession() as session:
             # for record in test2:
             for record in data:
                 # API limit
                 await asyncio.sleep(2)
-                count += 1
                 doi = record['doi']
-                log.info(doi+' figshare')
+                log.info(f'{count+1} {doi}')
                 result = await get_trees_figshare(session, doi)
                 if not result.have_tree():
-                    log.info(doi + ' dryad')
                     result = await get_trees_dryad(session, doi)
+                count += 1
                 if not result.have_tree():
-                    log.info(doi+' do not have tree')
                     continue
-                count_have_tree += 1
-                record['tree_files'] = tuple(result.tree_files)
-                results.append(record)
-        print(count, 'records')
-        print(count_have_tree, 'have trees')
-        output_json = input_json.with_suffix('.result.json')
-        print('Writing results', output_json)
+                else:
+                    log.info(f'Found trees in {doi}')
+                    count_have_tree += 1
+                    record['tree_files'] = tuple(result.tree_files)
+                    results.append(record)
+                if count % CHECK_SIZE == 0:
+                    log.warning(f'Processed {count} records')
+                    checkpoint.write_text(str(count+checkpoint_n))
+                    log.warning(f'Writing results {output_json}')
+                    with open(output_json, 'w') as f:
+                        json.dump(results, f)
+        log.info(f'{count} records')
+        log.info(f'{count_have_tree} have trees')
+        log.info(f'Writing results {output_json}')
         with open(output_json, 'w') as f:
             json.dump(results, f)
     return
