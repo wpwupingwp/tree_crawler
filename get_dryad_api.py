@@ -6,7 +6,7 @@ import aiohttp
 log = logging.getLogger('fetch_tree')
 
 
-async def get_api_token():
+async def get_api_token() -> dict:
     with open('key.txt', 'r') as f:
         client_id = f.readline().strip()
         client_secret = f.readline().strip()
@@ -21,9 +21,23 @@ async def get_api_token():
         }) as resp:
             if not resp.ok:
                 log.warning(f'Get token fail {resp.status}')
-                return None
-            return await resp.json()
+                return {}
+            access_token = (await resp.json())['access_token']
+        headers = {'Authorization': f'Bearer {access_token}'}
+        async with session.get('https://datadryad.org/api/v2/search',
+                               params={'q': '10.1111/jbi.13789'},
+                               headers=headers) as resp:
+            if not resp.ok:
+                log.error('Bad token')
+                print(resp.status, resp.text)
+                return {}
+            else:
+                result = await resp.json()
+                print(result)
+                log.info('Token ok')
+    return headers
 
 if __name__ == '__main__':
     result = asyncio.run(get_api_token())
+    print('Got token')
     print(result)
