@@ -26,8 +26,7 @@ async def main():
     # pubmed result json
     json_files = list(Path().glob('2*.json'))
     input_jsons = [i for i in json_files if 'result' not in i.name]
-    results = list()
-    for input_json in input_jsons[-3:]:
+    for input_json in input_jsons[2:]:
         headers = await get_api_token()
         log.info(input_json)
         output_json = input_json.with_suffix('.result.json')
@@ -37,6 +36,7 @@ async def main():
             log.info(f'Load {checkpoint_n} records from checkpoint')
             results = json.load(open(output_json, 'r'))
         else:
+            results = list()
             checkpoint_n = 0
         data = json.load(input_json.open())
         log.info(f'{len(data)} records')
@@ -72,7 +72,7 @@ async def main():
         log.info(f'{count_have_tree} have trees')
         log.info(f'Writing results {output_json}')
         with open(output_json, 'w') as f:
-            json.dump(results, f)
+            json.dump(results, f, indent=True)
     return
 
 
