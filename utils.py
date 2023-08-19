@@ -80,7 +80,7 @@ def get_doi(raw_doi: str, doi_type='default') -> str:
 
 
 async def download(session: aiohttp.ClientSession, download_url: str,
-                   size: int) -> (bool, bytes):
+                   size: int, headers: dict) -> (bool, bytes):
     ok = False
     bin_data = b''
     retry_n = 10
@@ -91,7 +91,8 @@ async def download(session: aiohttp.ClientSession, download_url: str,
     while retry_n > 0:
         retry_n -= 1
         try:
-            async with session.get(download_url, proxy=proxy) as resp:
+            async with session.get(download_url, proxy=proxy, headers=headers
+                                   ) as resp:
                 if not resp.ok:
                     log.warning(f'Download {download_url} fail {resp.status}')
                     await asyncio.sleep(0.5)

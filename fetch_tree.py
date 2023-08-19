@@ -6,7 +6,7 @@ import logging
 import aiohttp
 import coloredlogs
 
-from dryad import get_trees_dryad
+from dryad import get_trees_dryad, get_api_token
 from figshare import get_trees_figshare
 
 FMT = '%(asctime)s %(levelname)-8s %(message)s'
@@ -28,6 +28,7 @@ async def main():
     input_jsons = [i for i in json_files if 'result' not in i.name]
     results = list()
     for input_json in input_jsons[2:]:
+        dryad_api = get_api_token()
         log.info(input_json)
         output_json = input_json.with_suffix('.result.json')
         checkpoint = input_json.with_suffix('.checkpoint')

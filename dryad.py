@@ -22,6 +22,38 @@ test_doi = ['10.1101/2020.10.08.331355',
             '10.1111/evo.12614']
 
 
+async def get_api_token() -> dict:
+    with open('key.txt', 'r') as f:
+        client_id = f.readline().strip()
+        client_secret = f.readline().strip()
+    url = 'https://datadryad.org/oauth/token'
+    headers = {'Content-Type': 'application/x-www-form-urlencoded',
+               'charset': 'UTF-8'}
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, headers=headers, params={
+            'client_id': client_id,
+            'client_secret': client_secret,
+            'grant_type': 'client_credentials'
+        }) as resp:
+            if not resp.ok:
+                log.warning(f'Get token fail {resp.status}')
+                return {}
+            access_token = (await resp.json())['access_token']
+        headers = {'Authorization': f'Bearer {access_token}'}
+        async with session.get('https://datadryad.org/api/v2/search',
+                               params={'q': '10.1111/jbi.13789'},
+                               headers=headers) as resp:
+            if not resp.ok:
+                log.error('Bad token')
+                print(resp.status, resp.text)
+                return {}
+            else:
+                result = await resp.json()
+                print(result)
+                log.info('Token ok')
+    return headers
+
+
 def get_dryad_url(identifier: str) -> str:
     # dryad doi looks lie 'doi:10.5061/dryad.1g1jwstss'
     # convert dryad doi to dryad download url
@@ -31,12 +63,12 @@ def get_dryad_url(identifier: str) -> str:
     return download_url
 
 
-async def search_doi_in_dryad(session: aiohttp.ClientSession, doi: str) -> (
-        str, str, int):
+async def search_doi_in_dryad(session: aiohttp.ClientSession, doi: str,
+                              headers: dict ) -> (str, str, int):
     search_url = f'{DRYAD_SERVER}/search'
     # todo: search doi?
     params = {'q': doi, 'page': 1, 'per_page': 2}
-    async with session.get(search_url, params=params) as resp:
+    async with session.get(search_url, params=params, headers=headers) as resp:
         if not resp.ok:
             raise Exception(resp.status)
         result = await resp.json()
@@ -58,14 +90,17 @@ async def search_doi_in_dryad(session: aiohttp.ClientSession, doi: str) -> (
         return identifier, title, size
 
 
-async def get_trees_dryad(session, doi_raw: str) -> Result:
+async def get_trees_dryad(session: aiohttp.ClientSession, doi_raw: str,
+                          headers: dict) -> Result:
     doi = get_doi(doi_raw)
-    identifier, title, size = await search_doi_in_dryad(session, doi)
+    identifier, title, size = await search_doi_in_dryad(session, doi,
+                                                        headers=headers)
     result = Result(title, identifier, doi)
     if identifier == '':
         return result
     download_url = get_dryad_url(identifier)
-    ok, bin_data = await download(session, download_url, size)
+    ok, bin_data = await download(session, download_url, size,
+                                  headers=headers)
     if not ok:
         return result
     else:
