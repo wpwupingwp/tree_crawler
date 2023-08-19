@@ -47,6 +47,7 @@ async def search_doi_in_figshare(session: ClientSession, raw_doi: str) -> list:
 
 
 async def get_trees_figshare(session: ClientSession, doi: str) -> Result:
+    emtpy_headers = {}
     article_urls = await search_doi_in_figshare(session, doi)
     if len(article_urls) == 0:
         return Result(doi=doi)
@@ -73,7 +74,8 @@ async def get_trees_figshare(session: ClientSession, doi: str) -> Result:
                     log.info(f'{filename} may be a tree file')
                 to_download.append((download_url, i['size'], filename))
     result = Result(title, identifier, doi)
-    downloads = await asyncio.gather(*[download(session, download_url, size) for
+    downloads = await asyncio.gather(*[download(session, download_url,
+                                                size, emtpy_headers) for
                                        download_url, size, _ in to_download], )
     all_tree_files = list()
     for x, y in zip(downloads, to_download):

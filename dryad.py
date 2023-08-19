@@ -111,10 +111,11 @@ async def get_trees_dryad(session: aiohttp.ClientSession, doi_raw: str,
     return result
 
 
-async def dryad_main(doi_list: list) -> list:
+async def dryad_main(doi_list: list) -> tuple:
+    headers = await get_api_token()
     async with aiohttp.ClientSession() as session:
         results = await asyncio.gather(
-            *[get_trees_dryad(session, doi) for doi in doi_list])
+            *[get_trees_dryad(session, doi, headers) for doi in doi_list])
     for i in results:
         if i.empty():
             print('Empty', i)

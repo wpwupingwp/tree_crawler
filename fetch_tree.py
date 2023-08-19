@@ -27,8 +27,8 @@ async def main():
     json_files = list(Path().glob('2*.json'))
     input_jsons = [i for i in json_files if 'result' not in i.name]
     results = list()
-    for input_json in input_jsons[2:]:
-        dryad_api = get_api_token()
+    for input_json in input_jsons[-3:]:
+        headers = await get_api_token()
         log.info(input_json)
         output_json = input_json.with_suffix('.result.json')
         checkpoint = input_json.with_suffix('.checkpoint')
@@ -49,12 +49,13 @@ async def main():
             # for record in test2:
             for record in data[checkpoint_n:]:
                 # API limit
-                await asyncio.sleep(2)
+                # 120/min
+                await asyncio.sleep(0.5)
                 doi = record['doi']
                 log.info(f'{count+checkpoint_n+1} {doi}')
                 result = await get_trees_figshare(session, doi)
                 if not result.have_tree():
-                    result = await get_trees_dryad(session, doi)
+                    result = await get_trees_dryad(session, doi, headers)
                 count += 1
                 if result.have_tree():
                     log.info(f'Found trees in {doi}')
