@@ -57,6 +57,9 @@ async def get_trees_figshare(session: ClientSession, doi: str) -> Result:
             if not resp.ok:
                 return Result(doi=doi)
             article_info = await resp.json()
+            if 'files' not in article_info:
+                # no files in this article
+                return Result(doi=doi)
             # repeat assignment?
             title = article_info['resource_title']
             identifier = article_info['doi']

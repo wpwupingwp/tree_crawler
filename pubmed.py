@@ -34,7 +34,7 @@ def print2(data):
 
 def date2str(date_raw: dict) -> str:
     year = date_raw['Year']
-    month = MONTH2NUM[date_raw['Month']]
+    month = MONTH2NUM[date_raw.get('Month', 'Jan')]
     try:
         day = date_raw['Day']
     except KeyError:
@@ -142,13 +142,17 @@ async def main(start_date: str, end_date: str, journal: str):
 
 if __name__ == '__main__':
     # journal = 'Molecular Biology and Evolution'
-    # start_date = '2023/07/01'
-    # end_date = '2022/07/15'
-    # PNAS too many articles
-    start_date = '2020/01/01'
-    end_date = '2023/07/31'
-    for start_date, end_date in (('2020/01/01', '2020/12/31'),):
+    # PNAS too many articles, one year each batch
+    # start_date = '2020/01/01'
+    # end_date = '2023/07/31'
+    # start_date = '2015/01/01'
+    # end_date = '2019/12/31'
+    start_year = 2015
+    end_year = 2019
+    for year in range(start_year, end_year + 1):
+        start_date = f'{year}/01/01'
+        end_date = f'{year}/12/31'
         print(start_date, end_date)
-        for journal in get_journal_list()[16:]:
+        for journal in get_journal_list()[-1:]:
             print(start_date, end_date)
             asyncio.run(main(start_date, end_date, journal))

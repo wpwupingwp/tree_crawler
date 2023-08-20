@@ -24,9 +24,9 @@ CHECK_SIZE = 50
 
 async def main():
     # pubmed result json
-    json_files = list(Path().glob('2*.json'))
+    json_files = list(Path().glob('2020*.json'))
     input_jsons = [i for i in json_files if 'result' not in i.name]
-    for input_json in input_jsons[2:]:
+    for input_json in input_jsons[-2:]:
         headers = await get_api_token()
         log.info(input_json)
         output_json = input_json.with_suffix('.result.json')
@@ -73,6 +73,7 @@ async def main():
         log.info(f'Writing results {output_json}')
         with open(output_json, 'w') as f:
             json.dump(results, f, indent=True)
+        checkpoint.write_text(str(count + checkpoint_n))
     return
 
 

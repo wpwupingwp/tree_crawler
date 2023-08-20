@@ -144,7 +144,10 @@ def extract_tree(z: ZipFile, out_folder: Path):
             log.warning(f'{file} is not tree')
             continue
         tmpfile = out_folder / file
-        z.extract(file, path=out_folder)
+        try:
+            z.extract(file, path=out_folder)
+        except FileNotFoundError:
+            continue
         if (suffix in TXT_SUFFIX or suffix in NEXUS_SUFFIX or
                 suffix in TREE_SUFFIX):
             if is_valid_tree(tmpfile):
