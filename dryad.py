@@ -86,7 +86,7 @@ async def search_doi_in_dryad(session: aiohttp.ClientSession, doi: str,
             doi = ''
         else:
             doi = related_work[0]['identifier']
-        size = result['_embedded']['stash:datasets'][0]['storageSize']
+        size = result['_embedded']['stash:datasets'][0].get('storageSize', 0)
         return identifier, title, size
 
 

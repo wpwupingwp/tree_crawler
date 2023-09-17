@@ -9,7 +9,7 @@ import logging
 import aiohttp
 import dendropy
 
-MAX_SIZE = 1024 * 1024 * 50
+MAX_SIZE = 1024 * 1024 * 100
 proxy = 'http://127.0.0.1:7890'
 
 NEXUS_SUFFIX = set('.nex,.nexus'.split(','))
@@ -17,7 +17,8 @@ TREE_SUFFIX = set('.nwk,.newick,.nex,.nexus,.tre,.tree,.treefile'.split(','))
 TXT_SUFFIX = {'.txt'}
 ZIP_SUFFIX = {'.zip'}
 TARGET_SUFFIX = TREE_SUFFIX | ZIP_SUFFIX | TXT_SUFFIX | NEXUS_SUFFIX
-OUT_FOLDER = Path(r'R:\tree_crawl_out').absolute()
+# OUT_FOLDER = Path(r'R:\tree_crawl_out').absolute()
+OUT_FOLDER = Path('/Users/wuping/Ramdisk/trees').absolute()
 if not OUT_FOLDER.exists():
     OUT_FOLDER.mkdir()
 
@@ -157,7 +158,11 @@ def extract_tree(z: ZipFile, out_folder: Path):
                 tmpfile.unlink()
         elif suffix in ZIP_SUFFIX:
             log.info(f'Extracting {file}')
-            with ZipFile(out_folder / file, 'r') as zz:
+            target_filename = out_folder / file
+            # filename contain '..'
+            if not target_filename.exists():
+                continue
+            with ZipFile(target_filename, 'r') as zz:
                 yield from extract_tree(zz, out_folder)
             tmpfile.unlink()
         else:
