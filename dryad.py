@@ -88,7 +88,7 @@ def parse_result(result: dict) -> (str, str, str, str, int, int):
     for dataset in result['_embedded']['stash:datasets']:
         identifier = dataset['identifier']
         # dataset title, not paper's
-        title = dataset['title']
+        title = dataset.get('title', '')
         related_work = dataset.get('relatedWorks', None)
         if related_work is None:
             doi_ = ''
