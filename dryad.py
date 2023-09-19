@@ -75,38 +75,45 @@ async def search_in_dryad(session: aiohttp.ClientSession, headers: dict,
 
 
 def parse_result(result: dict) -> (str, str, str, str, int, int):
+    empty_result = ('', '', '', '', -1, -1)
     count = result['count']
     total = result['total']
-    if count == 0 or count > 1:
-        # bad search result
-        return '', '', -1
-    # print(json.dumps(result, indent=True))
-    identifier = result['_embedded']['stash:datasets'][0]['identifier']
-    # dataset title, not paper's
-    title = result['_embedded']['stash:datasets'][0]['title']
-    related_work = result['_embedded']['stash:datasets'][0].get(
-        'relatedWorks', None)
-    if related_work is None:
-        doi_ = ''
-    else:
-        doi_ = related_work[0]['identifier']
-    size = result['_embedded']['stash:datasets'][0].get('storageSize', 0)
-    return identifier, title, size, doi_, count, total
+        # if count > 1:
+        #     # bad search result
+        #     return empty_result
+    if count == 0:
+        yield empty_result
+    for dataset in result['_embedded']['stash:datasets']:
+        identifier = dataset['identifier']
+        # dataset title, not paper's
+        title = dataset['title']
+        related_work = dataset.get('relatedWorks', None)
+        if related_work is None:
+            doi_ = ''
+        else:
+            doi_ = related_work[0]['identifier']
+        size = dataset.get('storageSize', 0)
+        yield identifier, title, size, doi_, count, total
 
 
 async def search_doi_in_dryad(session: aiohttp.ClientSession, doi: str,
                               headers: dict) -> (str, str, int):
     result = await search_in_dryad(session, headers, doi)
-    identifier, title, size, *_ = parse_result(result)
+    # if more than 2 result for one doi, only accept the first
+    identifier, title, size, *_ = next(parse_result(result))
     return identifier, title, size
 
 
 async def search_journal_in_dryad(session: aiohttp.ClientSession,
                                   headers: dict, journal: str,):
-    per_page = 100
+    per_page = 10
     result = await search_in_dryad(session, headers, journal, page=1,
                                    per_page=per_page)
     *_, count, total = parse_result(result)
+    if count == 0:
+        return ''
+    for record in result['_embedded']['stash:datasets']:
+        pass
     total = result['total']
     if total < per_page:
         pass
