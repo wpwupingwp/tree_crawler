@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import json
+from pathlib import Path
 
 import aiohttp
 
@@ -115,7 +116,10 @@ async def search_doi_in_dryad(session: aiohttp.ClientSession, doi: str,
 async def search_journal_in_dryad(session: aiohttp.ClientSession,
                                   headers: dict, journal: str):
     results = list()
-    output_json = journal.replace(' ', '_')
+    output_json = journal.replace(' ', '_') + '.result.json'
+    if Path(output_json).exists():
+        log.info(f'{journal} already searched.')
+        return ''
     count_have_tree = 0
     max_per_page = 100
     try_search_result = await search_in_dryad(session, headers, journal, page=1,
@@ -143,7 +147,7 @@ async def search_journal_in_dryad(session: aiohttp.ClientSession,
             else:
                 write_tree(result, doi_, bin_data)
                 count_have_tree += 1
-                results.append(result)
+                results.append(result.to_dict())
     log.info(f'{count_have_tree} have trees')
     log.info(f'Writing results {output_json}')
     with open(output_json, 'w') as f:
