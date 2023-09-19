@@ -1,10 +1,11 @@
-import asyncio
 from dataclasses import asdict, dataclass
 from io import BytesIO
 from pathlib import Path
 from zipfile import ZipFile, BadZipfile
-import re
+import asyncio
+import json
 import logging
+import re
 
 import aiohttp
 import dendropy
@@ -17,8 +18,8 @@ TREE_SUFFIX = set('.nwk,.newick,.nex,.nexus,.tre,.tree,.treefile'.split(','))
 TXT_SUFFIX = {'.txt'}
 ZIP_SUFFIX = {'.zip'}
 TARGET_SUFFIX = TREE_SUFFIX | ZIP_SUFFIX | TXT_SUFFIX | NEXUS_SUFFIX
-# OUT_FOLDER = Path(r'R:\tree_crawl_out').absolute()
-OUT_FOLDER = Path('/Users/wuping/Ramdisk/trees').absolute()
+OUT_FOLDER = Path(r'R:\tree_crawl_out').absolute()
+# OUT_FOLDER = Path('/Users/wuping/Ramdisk/trees').absolute()
 if not OUT_FOLDER.exists():
     OUT_FOLDER.mkdir()
 
@@ -180,3 +181,7 @@ def filter_tree_from_zip(file_bin: bytes, out_folder: Path) -> list:
     except BadZipfile:
         log.critical('Bad zip file')
     return tree_files
+
+
+def pprint(raw: dict):
+    print(json.dumps(raw, indent=True))
