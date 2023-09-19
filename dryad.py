@@ -97,19 +97,19 @@ def parse_result(result: dict) -> (str, str, str, str, int, int):
         yield identifier, title, size, doi_, count, total
 
 
+def write_tree(result, doi, bin_data) -> None:
+    out_folder = OUT_FOLDER / get_doi(doi, doi_type='folder')
+    out_folder.mkdir(exist_ok=True)
+    tree_files = filter_tree_from_zip(bin_data, out_folder)
+    result.add_trees(tree_files)
+
+
 async def search_doi_in_dryad(session: aiohttp.ClientSession, doi: str,
                               headers: dict) -> (str, str, int):
     result = await search_in_dryad(session, headers, doi)
     # if more than 2 result for one doi, only accept the first
     identifier, title, size, *_ = next(parse_result(result))
     return identifier, title, size
-
-
-def write_tree(result, doi, bin_data) -> None:
-    out_folder = OUT_FOLDER / get_doi(doi, doi_type='folder')
-    out_folder.mkdir(exist_ok=True)
-    tree_files = filter_tree_from_zip(bin_data, out_folder)
-    result.add_trees(tree_files)
 
 
 async def search_journal_in_dryad(session: aiohttp.ClientSession,
@@ -124,11 +124,14 @@ async def search_journal_in_dryad(session: aiohttp.ClientSession,
     if count == 0:
         log.error(f'0 record found for {journal}')
         return ''
-    for page in range(total//max_per_page + 1):
+    log.info(f'Got {total} records from journal {journal}')
+    for page in range(1, total//max_per_page + 2):
+        log.info(f'{page}-{page*max_per_page}')
         search_result = await search_in_dryad(session, headers, journal,
                                               page=page, per_page=max_per_page)
-        for record in parse_result(search_result):
+        for n, record in enumerate(parse_result(search_result)):
             identifier, title, size, doi_, count, total = record
+            log.info(f'{n}\t{identifier}')
             if identifier == '':
                 continue
             result = Result(title, identifier, doi_)
@@ -168,8 +171,6 @@ async def get_trees_dryad(session: aiohttp.ClientSession, doi_raw: str,
 async def dryad_main(doi_list: list) -> tuple:
     headers = await get_api_token()
     async with aiohttp.ClientSession() as session:
-        # await search_journal_in_dryad(session, headers, 'Evolution and Ecology')
-        # return
         results = await asyncio.gather(
             *[get_trees_dryad(session, doi, headers) for doi in doi_list])
     for i in results:
