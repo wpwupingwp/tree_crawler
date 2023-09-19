@@ -64,30 +64,40 @@ def get_dryad_url(identifier: str) -> str:
 
 
 async def search_doi_in_dryad(session: aiohttp.ClientSession, doi: str,
-                              headers: dict ) -> (str, str, int):
+                              headers: dict) -> (str, str, int):
+    result = await search_in_dryad(session, headers, doi)
+    count = result['count']
+    if count == 0 or count > 1:
+        # bad search result
+        return '', '', -1
+    # print(json.dumps(result, indent=True))
+    identifier = result['_embedded']['stash:datasets'][0]['identifier']
+    # dataset title, not paper's
+    title = result['_embedded']['stash:datasets'][0]['title']
+    related_work = result['_embedded']['stash:datasets'][0].get(
+        'relatedWorks', None)
+    # if related_work is None:
+    #     doi_ = ''
+    # else:
+    #     doi_ = related_work[0]['identifier']
+    size = result['_embedded']['stash:datasets'][0].get('storageSize', 0)
+    return identifier, title, size
+
+
+async def search_in_dryad(session: aiohttp.ClientSession, headers: dict,
+                          q: str, page=1, per_page=2) -> dict:
+    # search in dryad, return json dict
     search_url = f'{DRYAD_SERVER}/search'
-    # todo: search doi?
-    params = {'q': doi, 'page': 1, 'per_page': 2}
+    params = {'q': q, 'page': page, 'per_page': per_page}
     async with session.get(search_url, params=params, headers=headers) as resp:
         if not resp.ok:
-            raise Exception(resp.status)
-        result = await resp.json()
-        count = result['count']
-        if count == 0 or count > 1:
-            # bad search result
-            return '', '', -1
-        # print(json.dumps(result, indent=True))
-        identifier = result['_embedded']['stash:datasets'][0]['identifier']
-        # dataset title, not paper's
-        title = result['_embedded']['stash:datasets'][0]['title']
-        related_work = result['_embedded']['stash:datasets'][0].get(
-            'relatedWorks', None)
-        if related_work is None:
-            doi = ''
-        else:
-            doi = related_work[0]['identifier']
-        size = result['_embedded']['stash:datasets'][0].get('storageSize', 0)
-        return identifier, title, size
+            raise ConnectionError(resp.status)
+        return await resp.json()
+
+
+async def search_journal_in_dryad(session: aiohttp.ClientSession, journal: str,
+                                  headers: dict):
+    pass
 
 
 async def get_trees_dryad(session: aiohttp.ClientSession, doi_raw: str,

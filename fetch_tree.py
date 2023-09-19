@@ -73,6 +73,7 @@ async def main():
         log.info(f'Writing results {output_json}')
         with open(output_json, 'w') as f:
             json.dump(results, f, indent=True)
+        checkpoint.write_text(str(count + checkpoint_n))
     return
 
 
