@@ -63,27 +63,6 @@ def get_dryad_url(identifier: str) -> str:
     return download_url
 
 
-async def search_doi_in_dryad(session: aiohttp.ClientSession, doi: str,
-                              headers: dict) -> (str, str, int):
-    result = await search_in_dryad(session, headers, doi)
-    count = result['count']
-    if count == 0 or count > 1:
-        # bad search result
-        return '', '', -1
-    # print(json.dumps(result, indent=True))
-    identifier = result['_embedded']['stash:datasets'][0]['identifier']
-    # dataset title, not paper's
-    title = result['_embedded']['stash:datasets'][0]['title']
-    related_work = result['_embedded']['stash:datasets'][0].get(
-        'relatedWorks', None)
-    # if related_work is None:
-    #     doi_ = ''
-    # else:
-    #     doi_ = related_work[0]['identifier']
-    size = result['_embedded']['stash:datasets'][0].get('storageSize', 0)
-    return identifier, title, size
-
-
 async def search_in_dryad(session: aiohttp.ClientSession, headers: dict,
                           q: str, page=1, per_page=2) -> dict:
     # search in dryad, return json dict
@@ -95,8 +74,46 @@ async def search_in_dryad(session: aiohttp.ClientSession, headers: dict,
         return await resp.json()
 
 
-async def search_journal_in_dryad(session: aiohttp.ClientSession, journal: str,
-                                  headers: dict):
+def parse_result(result: dict) -> (str, str, str, str, int, int):
+    count = result['count']
+    total = result['total']
+    if count == 0 or count > 1:
+        # bad search result
+        return '', '', -1
+    # print(json.dumps(result, indent=True))
+    identifier = result['_embedded']['stash:datasets'][0]['identifier']
+    # dataset title, not paper's
+    title = result['_embedded']['stash:datasets'][0]['title']
+    related_work = result['_embedded']['stash:datasets'][0].get(
+        'relatedWorks', None)
+    if related_work is None:
+        doi_ = ''
+    else:
+        doi_ = related_work[0]['identifier']
+    size = result['_embedded']['stash:datasets'][0].get('storageSize', 0)
+    return identifier, title, size, doi_, count, total
+
+
+async def search_doi_in_dryad(session: aiohttp.ClientSession, doi: str,
+                              headers: dict) -> (str, str, int):
+    result = await search_in_dryad(session, headers, doi)
+    identifier, title, size, *_ = parse_result(result)
+    return identifier, title, size
+
+
+async def search_journal_in_dryad(session: aiohttp.ClientSession,
+                                  headers: dict, journal: str,):
+    per_page = 100
+    result = await search_in_dryad(session, headers, journal, page=1,
+                                   per_page=per_page)
+    *_, count, total = parse_result(result)
+    total = result['total']
+    if total < per_page:
+        pass
+    from utils import pprint
+    pprint(result)
+    print(result['count'])
+    print(result['total'])
     pass
 
 
@@ -124,6 +141,8 @@ async def get_trees_dryad(session: aiohttp.ClientSession, doi_raw: str,
 async def dryad_main(doi_list: list) -> tuple:
     headers = await get_api_token()
     async with aiohttp.ClientSession() as session:
+        # await search_journal_in_dryad(session, headers, 'Evolution and Ecology')
+        # return
         results = await asyncio.gather(
             *[get_trees_dryad(session, doi, headers) for doi in doi_list])
     for i in results:
