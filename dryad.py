@@ -106,14 +106,27 @@ async def search_doi_in_dryad(session: aiohttp.ClientSession, doi: str,
 
 async def search_journal_in_dryad(session: aiohttp.ClientSession,
                                   headers: dict, journal: str,):
-    per_page = 10
+    per_page = 100
     result = await search_in_dryad(session, headers, journal, page=1,
                                    per_page=per_page)
+    for record in parse_result(result):
+        identifier, title, size, doi_, count, total = record
+        if count == 0:
+            return ''
+        if identifier == '':
+            continue
+        download_url = get_dryad_url(identifier)
+        ok, bin_data = await download(session, download_url, size,
+                                      headers=headers)
+        if not ok:
+            return result
+        else:
+            out_folder = OUT_FOLDER / get_doi(doi_, doi_type='folder')
+            out_folder.mkdir(exist_ok=True)
+            tree_files = filter_tree_from_zip(bin_data, out_folder)
+            result.add_trees(tree_files)
+
     *_, count, total = parse_result(result)
-    if count == 0:
-        return ''
-    for record in result['_embedded']['stash:datasets']:
-        pass
     total = result['total']
     if total < per_page:
         pass
@@ -122,6 +135,13 @@ async def search_journal_in_dryad(session: aiohttp.ClientSession,
     print(result['count'])
     print(result['total'])
     pass
+
+
+def write_tree(result, doi, bin_data) -> None:
+    out_folder = OUT_FOLDER / get_doi(doi, doi_type='folder')
+    out_folder.mkdir(exist_ok=True)
+    tree_files = filter_tree_from_zip(bin_data, out_folder)
+    result.add_trees(tree_files)
 
 
 async def get_trees_dryad(session: aiohttp.ClientSession, doi_raw: str,
@@ -138,10 +158,7 @@ async def get_trees_dryad(session: aiohttp.ClientSession, doi_raw: str,
     if not ok:
         return result
     else:
-        out_folder = OUT_FOLDER / get_doi(doi, doi_type='folder')
-        out_folder.mkdir(exist_ok=True)
-        tree_files = filter_tree_from_zip(bin_data, out_folder)
-        result.add_trees(tree_files)
+        write_tree(result, doi, bin_data)
     return result
 
 
