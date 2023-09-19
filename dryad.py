@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import json
 
 import aiohttp
 
@@ -104,44 +105,46 @@ async def search_doi_in_dryad(session: aiohttp.ClientSession, doi: str,
     return identifier, title, size
 
 
-async def search_journal_in_dryad(session: aiohttp.ClientSession,
-                                  headers: dict, journal: str,):
-    per_page = 100
-    result = await search_in_dryad(session, headers, journal, page=1,
-                                   per_page=per_page)
-    for record in parse_result(result):
-        identifier, title, size, doi_, count, total = record
-        if count == 0:
-            return ''
-        if identifier == '':
-            continue
-        download_url = get_dryad_url(identifier)
-        ok, bin_data = await download(session, download_url, size,
-                                      headers=headers)
-        if not ok:
-            return result
-        else:
-            out_folder = OUT_FOLDER / get_doi(doi_, doi_type='folder')
-            out_folder.mkdir(exist_ok=True)
-            tree_files = filter_tree_from_zip(bin_data, out_folder)
-            result.add_trees(tree_files)
-
-    *_, count, total = parse_result(result)
-    total = result['total']
-    if total < per_page:
-        pass
-    from utils import pprint
-    pprint(result)
-    print(result['count'])
-    print(result['total'])
-    pass
-
-
 def write_tree(result, doi, bin_data) -> None:
     out_folder = OUT_FOLDER / get_doi(doi, doi_type='folder')
     out_folder.mkdir(exist_ok=True)
     tree_files = filter_tree_from_zip(bin_data, out_folder)
     result.add_trees(tree_files)
+
+
+async def search_journal_in_dryad(session: aiohttp.ClientSession,
+                                  headers: dict, journal: str):
+    results = list()
+    output_json = journal.replace(' ', '_')
+    count_have_tree = 0
+    max_per_page = 100
+    try_search_result = await search_in_dryad(session, headers, journal, page=1,
+                                              per_page=1)
+    *_, count, total = next(parse_result(try_search_result))
+    if count == 0:
+        log.error(f'0 record found for {journal}')
+        return ''
+    for page in range(total//max_per_page + 1):
+        search_result = await search_in_dryad(session, headers, journal,
+                                              page=page, per_page=max_per_page)
+        for record in parse_result(search_result):
+            identifier, title, size, doi_, count, total = record
+            if identifier == '':
+                continue
+            result = Result(title, identifier, doi_)
+            download_url = get_dryad_url(identifier)
+            ok, bin_data = await download(session, download_url, size,
+                                          headers=headers)
+            if not ok:
+                continue
+            else:
+                write_tree(result, doi_, bin_data)
+                count_have_tree += 1
+                results.append(result)
+    log.info(f'{count_have_tree} have trees')
+    log.info(f'Writing results {output_json}')
+    with open(output_json, 'w') as f:
+        json.dump(results, f, indent=True)
 
 
 async def get_trees_dryad(session: aiohttp.ClientSession, doi_raw: str,
