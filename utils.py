@@ -76,7 +76,7 @@ def get_doi(raw_doi: str, doi_type='default') -> str:
     elif doi_type == 'dryad':
         return f'doi%3A{doi.replace("/", "%2F")}'
     elif doi_type == 'folder':
-        return doi.replace('/', '_')
+        return re.sub(r'[^A-z0-9_.]', '_', doi)
     else:
         return doi
 
