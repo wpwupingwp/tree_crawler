@@ -145,9 +145,10 @@ def extract_tree(z: ZipFile, out_folder: Path):
         if suffix not in TARGET_SUFFIX:
             log.warning(f'{file} is not tree')
             continue
-        tmpfile = out_folder / file
+        # tmpfile = out_folder / file
         try:
-            z.extract(file, path=out_folder)
+            actual_filename = z.extract(file, path=out_folder)
+            tmpfile = Path(actual_filename)
         except FileNotFoundError:
             continue
         if (suffix in TXT_SUFFIX or suffix in NEXUS_SUFFIX or
