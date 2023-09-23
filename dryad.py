@@ -100,7 +100,11 @@ def parse_result(result: dict) -> (str, str, str, str, int, int):
 
 def write_tree(result, doi, bin_data) -> None:
     out_folder = OUT_FOLDER / get_doi(doi, doi_type='folder')
-    out_folder.mkdir(exist_ok=True)
+    try:
+        out_folder.mkdir(exist_ok=True)
+    except OSError as e:
+        log.error(str(e))
+        return
     tree_files = filter_tree_from_zip(bin_data, out_folder)
     result.add_trees(tree_files)
 
