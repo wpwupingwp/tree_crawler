@@ -2,7 +2,6 @@ Ecology and Evolution
 PLOS ONE
 Molecular Ecology
 Royal Society Open Science
-Evolution
 Proceedings of the Royal Society B: Biological Sciences
 Proceedings of the Royal Society B
 Journal of Evolutionary Biology
@@ -34,8 +33,6 @@ Journal of Experimental Biology
 Journal of Heredity
 Paleobiology
 BMC Evolutionary Biology
-Ecology
-Science
 Nature Communications
 Palaeontology
 Diversity and Distributions
@@ -58,13 +55,11 @@ Scientific Data
 Molecular Biology and Evolution
 Papers in Palaeontology
 PeerJ
-C Genomics
 Evolution Letters
 PLOS Computational Biology
 Journal of the Royal Society Interface
 PLOS Biology
 Genome Biology and Evolution
-Nature
 Communications Biology
 Nature Ecology & Evolution
 Journal of Experimental Botany
