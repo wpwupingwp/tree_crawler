@@ -139,7 +139,7 @@ async def search_journal_in_dryad(session: aiohttp.ClientSession,
                                               page=page, per_page=max_per_page)
         for n, record in enumerate(parse_result(search_result)):
             identifier, title, size, doi_, count, total = record
-            log.info(f'{n+(page-1)*max_per_page}\t{identifier}')
+            log.info(f'{n+(page-1)*max_per_page}\t{identifier}/{total}')
             if identifier == '':
                 continue
             result = Result(title, identifier, doi_)
