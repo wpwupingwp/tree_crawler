@@ -97,7 +97,8 @@ async def download(session: aiohttp.ClientSession, download_url: str,
                                    ) as resp:
                 if not resp.ok:
                     log.warning(f'Download {download_url} fail {resp.status}')
-                    await asyncio.sleep(0.5)
+                    log.warning(f'Does headers invalid? {repr(headers)}')
+                    await asyncio.sleep(1.0)
                     continue
                 bin_data = await resp.read()
             target_size = int(resp.headers.get('content-length', 0))
