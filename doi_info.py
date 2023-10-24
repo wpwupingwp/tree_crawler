@@ -57,10 +57,11 @@ def fill_field(record: Result, msg: dict) -> Result:
         record.author = ','.join(author)
     if ('created' in msg and 'date-parts' in msg['created'] and
             len(msg['created']['date-parts']) > 0):
-        record.date = '/'.join([str(_) for _ in msg['created']['date-parts'][0]])
+        record.pub_date = '/'.join(
+            [str(_) for _ in msg['created']['date-parts'][0]])
     record.issue = msg.get('issue', '')
     if len(msg['container-title']) > 0:
-        record.journal = msg['container-title'][0]
+        record.journal_name = msg['container-title'][0]
     if len(msg['title']) > 0:
         record.title = msg['title'][0]
     record.volume = msg.get('volume', '')
