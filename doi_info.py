@@ -49,11 +49,12 @@ async def query_doi(session: ClientSession, doi: str) -> dict:
 
 def fill_field(record: Result, msg: dict) -> Result:
     record.abstract = msg.get('abstract', '')
-    if (len(msg['author']) > 0 and
-            'given' in msg['author'][0] and
-            'family' in msg['author'][0]):
-        record.author = ','.join([f'{_["given"]} {_["family"]}'
-                                  for _ in msg['author']])
+    if len(msg['author']) > 0:
+        author = list()
+        for name in msg['author']:
+            if 'given' in name and 'family' in name:
+                author.append(f"{name['given']} {name['family']}")
+        record.author = ','.join(author)
     if ('created' in msg and 'date-parts' in msg['created'] and
             len(msg['created']['date-parts']) > 0):
         record.date = '/'.join([str(_) for _ in msg['created']['date-parts'][0]])
@@ -103,9 +104,10 @@ async def main():
                     print(msg)
                     raise Exception
                 print(record)
-            new_result_list.append(record)
+            new_result_list.append(record.to_dict())
         print(new_result, len(old_records))
         await session.close()
+        json.dump(new_result_list, open(new_result, 'w'), indent=True)
 
 
 asyncio.run(main())
