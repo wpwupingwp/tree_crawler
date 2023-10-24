@@ -22,7 +22,7 @@ QUERY_URL = 'https://api.crossref.org/works/'
 EMAIL = 'wpwupingwp@outlook.com'
 
 
-async def query_doi(doi: str):
+async def query_doi(session: ClientSession, doi: str) -> dict:
     """
     50/s rate limit
     cannot use "select"
@@ -30,21 +30,23 @@ async def query_doi(doi: str):
                'container-title,published')}
     """
     params = {'mailto': EMAIL}
-    async with ClientSession() as session:
-        await asyncio.sleep(0.022)
-        async with session.get(QUERY_URL + doi, params=params) as resp:
+    await asyncio.sleep(0.022)
+    async with session.get(QUERY_URL + doi, params=params) as resp:
+        try:
             r = await resp.json()
-            if r['status'] != 'ok':
-                print(r)
-            msg = r['message']
-            # pprint(r)
-            if 'DOI' not in msg:
-                pprint(msg)
-            if doi != msg['DOI']:
-                log.error('bad record')
-                return {}
-            else:
-                return msg
+        except Exception:
+            print(resp.text)
+        if r['status'] != 'ok':
+            print(r)
+        msg = r['message']
+        # pprint(r)
+        if 'DOI' not in msg:
+            pprint(msg)
+        if doi != msg['DOI']:
+            log.error('bad record')
+            return {}
+        else:
+            return msg
 
 
 def fill_field(record: Result, r: dict) -> Result:
@@ -69,8 +71,9 @@ async def test(doi='10.3732/ajb.1400290'):
 async def main():
     file_list = list(Path('result').glob('*.result.json'))
     for result_json in file_list:
-        new_result = Path(str(result_json).replace(
-            '.result.json', '.new_result.json'))
+        session = ClientSession()
+        new_result = result_json.with_suffix('.json.new')
+        # new_result = Path(str(result_json).replace( '.result.json', '.new_result.json'))
         new_result_list = list()
         old_records = json.load(open(result_json, 'r'))
         for raw_record in old_records:
@@ -86,11 +89,12 @@ async def main():
                 print(record)
                 record.identifier = record.author
                 record.doi = get_doi(record.doi)
-                r = await query_doi(record.doi)
-                record = fill_field(record, r)
+                msg = await query_doi(session, record.doi)
+                record = fill_field(record, msg)
                 print(record)
             new_result_list.append(record)
         print(new_result, len(old_records))
+        await session.close()
 
 
 asyncio.run(main())
