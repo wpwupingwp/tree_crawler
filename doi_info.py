@@ -32,12 +32,10 @@ async def query_doi(session: ClientSession, doi: str) -> dict:
     params = {'mailto': EMAIL}
     await asyncio.sleep(0.022)
     async with session.get(QUERY_URL + doi, params=params) as resp:
-        try:
-            r = await resp.json()
-        except Exception:
-            print(resp.text)
-        if r['status'] != 'ok':
-            print(r)
+        if resp.status != 200:
+            print((await resp.text()))
+            return {}
+        r = await resp.json()
         msg = r['message']
         # pprint(r)
         if 'DOI' not in msg:
@@ -49,15 +47,22 @@ async def query_doi(session: ClientSession, doi: str) -> dict:
             return msg
 
 
-def fill_field(record: Result, r: dict) -> Result:
-    record.abstract = r['abstract']
-    record.author = ','.join([f'{_["given"]} {_["family"]}'
-                              for _ in r['author']])
-    record.date = '/'.join([str(_) for _ in r['created']['date-parts'][0]])
-    record.issue = r['issue']
-    record.journal = r['container-title'][0]
-    record.title = r['title'][0]
-    record.volume = r['volume']
+def fill_field(record: Result, msg: dict) -> Result:
+    record.abstract = msg.get('abstract', '')
+    if (len(msg['author']) > 0 and
+            'given' in msg['author'][0] and
+            'family' in msg['author'][0]):
+        record.author = ','.join([f'{_["given"]} {_["family"]}'
+                                  for _ in msg['author']])
+    if ('created' in msg and 'date-parts' in msg['created'] and
+            len(msg['created']['date-parts']) > 0):
+        record.date = '/'.join([str(_) for _ in msg['created']['date-parts'][0]])
+    record.issue = msg.get('issue', '')
+    if len(msg['container-title']) > 0:
+        record.journal = msg['container-title'][0]
+    if len(msg['title']) > 0:
+        record.title = msg['title'][0]
+    record.volume = msg.get('volume', '')
     return record
 
 
@@ -90,7 +95,13 @@ async def main():
                 record.identifier = record.author
                 record.doi = get_doi(record.doi)
                 msg = await query_doi(session, record.doi)
-                record = fill_field(record, msg)
+                if not msg:
+                    continue
+                try:
+                    record = fill_field(record, msg)
+                except KeyError:
+                    print(msg)
+                    raise Exception
                 print(record)
             new_result_list.append(record)
         print(new_result, len(old_records))
