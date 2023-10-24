@@ -38,6 +38,8 @@ async def query_doi(doi: str):
                 print(r)
             msg = r['message']
             # pprint(r)
+            if 'DOI' not in msg:
+                pprint(msg)
             if doi != msg['DOI']:
                 log.error('bad record')
                 return {}
@@ -79,7 +81,8 @@ async def main():
             if ('/dryad' in record.author and
                     len(record.identifier) == 0 and
                     len(record.title) == 0 and
-                    len(record.journal_name) == 0):
+                    len(record.journal_name) == 0 and
+                    len(record.doi) != 0):
                 print(record)
                 record.identifier = record.author
                 record.doi = get_doi(record.doi)
