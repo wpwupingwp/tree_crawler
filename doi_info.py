@@ -8,16 +8,8 @@ from aiohttp import ClientSession
 import coloredlogs
 
 from utils import get_doi, pprint, Result
+from global_vars import log
 
-FMT = '%(asctime)s %(levelname)-8s %(message)s'
-DATEFMT = '%H:%M:%S'
-logging.basicConfig(format=FMT, datefmt=DATEFMT, level=logging.INFO)
-log = logging.getLogger('fetch_tree')
-fmt = logging.Formatter(FMT, DATEFMT)
-file_handler = logging.FileHandler('log.txt', 'a')
-file_handler.setFormatter(fmt)
-log.addHandler(file_handler)
-coloredlogs.install(level=logging.INFO, fmt=FMT, datefmt=DATEFMT)
 QUERY_URL = 'https://api.crossref.org/works/'
 EMAIL = 'wpwupingwp@outlook.com'
 
@@ -76,11 +68,11 @@ async def test(doi='10.3732/ajb.1400290'):
 
 
 async def main():
+    # use api to fetch article info by doi
     file_list = list(Path('result').glob('*.result.json'))
     for result_json in file_list:
         session = ClientSession()
         new_result = result_json.with_suffix('.json.new')
-        # new_result = Path(str(result_json).replace( '.result.json', '.new_result.json'))
         new_result_list = list()
         old_records = json.load(open(result_json, 'r'))
         for raw_record in old_records:

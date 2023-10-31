@@ -38,6 +38,7 @@ class Result:
     pub_date: str = ''
     title: str = ''
     volume: int = 0
+    lineage: tuple[str] = tuple()
     tree_files: tuple[str] = tuple()
 
     def __hash__(self):
