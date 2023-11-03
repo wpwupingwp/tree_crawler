@@ -25,6 +25,27 @@ if not OUT_FOLDER.exists():
 
 log = logging.getLogger('fetch_tree')
 
+
+@dataclass
+class Tree:
+    # unlike Trees in databases.py
+    # taxon name instead of id
+    root: str = ''
+    # Fig. 1, from path
+    tree_label: str = ''
+    # filename?
+    tree_title: str = ''
+    # Single/Consensus
+    tree_type: str = ''
+    tree_type_new: str = ''
+    # Gene Tree
+    tree_kind: str = ''
+    # Import for crawl, Unrated/Preferred Tree for treebase
+    tree_quality: str = ''
+    # should check if exists, rename
+    tree_file: str = ''
+
+
 @dataclass
 class Result:
     abstract: str = ''
@@ -40,6 +61,7 @@ class Result:
     volume: int = 0
     lineage: tuple[str] = tuple()
     tree_files: tuple[str] = tuple()
+    trees: tuple[Tree] = tuple()
 
     def __hash__(self):
         return hash(self.doi)
