@@ -3,6 +3,8 @@ import json
 import re
 from pathlib import Path
 
+import dendropy
+
 from utils import Result, Tree
 from global_vars import log
 
@@ -25,7 +27,7 @@ def get_taxon_list() -> (set, set, set):
     return genus_set, family_set, order_set
 
 
-def get_name_candidate(record: Result) -> set:
+def get_words(record: Result) -> set:
     word_set = set()
     for content in (record.title, record.abstract):
         for word in re.split(pattern, content):
@@ -34,7 +36,7 @@ def get_name_candidate(record: Result) -> set:
     return word_set
 
 
-def get_lineage(word_set: set) -> str:
+def get_taxon_by_words(word_set: set) -> str:
     # first genus, family or order
     genus_name = word_set & genus_set
     if genus_name:
@@ -48,13 +50,46 @@ def get_lineage(word_set: set) -> str:
     return ''
 
 
-def assign_lineage(record: Result):
+def assign_taxon_by_text(record: Result):
     # todo: test
-    word_set = get_name_candidate(record)
-    record.lineage = get_lineage(word_set)
+    word_set = get_words(record)
+    record.lineage = get_taxon_by_words(word_set)
     if not record.lineage:
         print(word_set, record.abstract)
     return record
+
+
+def get_taxon_by_names(names: list[str]) -> str:
+    genus_count = dict()
+    for name in names:
+        if name in genus_set:
+            genus_count[name] = genus_count.get(name, 0) + 1
+    top = sorted(genus_count.items(), key=lambda x:x[1], reverse=True)[0]
+    log.info(f'{top[0]} {top[1]} times, set as tree taxon')
+    return top[0]
+
+
+def assign_taxon_by_tree(record: Result) -> str:
+    # todo: test
+    # assume one paper for one taxon
+    taxon = ''
+    for tree_file in record.tree_files:
+        with open(tree_file, 'r') as _:
+            line = _.readline()
+            if line.startswith('#NEXUS'):
+                schema = 'nexus'
+            else:
+                schema = 'newick'
+            try:
+                tree = dendropy.Tree.get(path=tree_file, schema=schema)
+            except Exception:
+                return taxon
+            names_raw = tree.taxon_namespace
+            names = [_.label.replace('_', ' ').split(' ')[0] for _ in names_raw]
+            taxon = get_taxon_by_names(names)
+            if taxon:
+                return taxon
+    return taxon
 
 
 def main():
@@ -71,7 +106,7 @@ def main():
             if not record.tree_files:
                 continue
             total += 1
-            record = assign_lineage(record)
+            record = assign_taxon_by_text(record)
             if not record.lineage:
                 log.warning(f'{record.doi} cannot find lineage')
             else:
