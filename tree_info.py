@@ -1,11 +1,13 @@
 #!/usr/bin/python3
 import json
+import re
 from pathlib import Path
 
 from utils import Result, Tree
 from global_vars import log
 
 global species_set, genus_set, family_set, order_set
+pattern = re.compile(r'\W')
 
 
 def get_taxon_list() -> (set, set, set, set):
@@ -13,20 +15,26 @@ def get_taxon_list() -> (set, set, set, set):
     genus = set()
     family = set()
     order = set()
-    return genus, family, order
+    return species, genus, family, order
 
 
-def clean_abstract(abstract: str) -> list:
-    word_list = list()
-    for word in abstract.split(' '):
-        first_letter = word[0]
-        if first_letter.isupper():
-            word_list.append(word)
-    return word_list
+def get_word_list(words: str) -> (list, list):
+    word_list = re.split(pattern, words)
+    species_list = list()
+    lineage_list = list()
+    for i in range(len(word_list)-1):
+        if word_list[i].isupper():
+            if word_list[i+1].islower():
+                species_list.append(' '.join(word_list[i:i+2]))
+            else:
+                lineage_list.append(word_list[i])
+    return species_list, lineage_list
 
 
 def get_lineage(word_list: list) -> str:
-    # genus first, then family or order
+    # species first, then genus, family or order
+    # but return genus rather than species
+    genus_name = ''
     family_name = ''
     order_name = ''
     for word in word_list:
