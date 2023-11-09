@@ -1,13 +1,15 @@
 #!/usr/bin/python3
 import json
+from pathlib import Path
 
-from utils import Result
+from utils import Result, Tree
 from global_vars import log
 
-global genus_set, family_set, order_set
+global species_set, genus_set, family_set, order_set
 
 
-def get_taxon_list() -> (set, set, set):
+def get_taxon_list() -> (set, set, set, set):
+    species = set()
     genus = set()
     family = set()
     order = set()
@@ -42,11 +44,27 @@ def get_lineage(word_list: list) -> str:
         return ''
 
 
-def assign_lineage(Tree):
-    pass
+def assign_lineage(record: Result):
+    words = ' '.join([record.title, record.abstract])
+    word_list = clean_abstract(words)
+    record.lineage = get_lineage(word_list)
+    return record
 
 
 def main():
+    file_list = list(Path('result').glob('*.result.json.new'))
+    for result_json in file_list:
+        old_records = json.load(open(result_json, 'r'))
+        new_result_file = result_json.with_suffix('.json.new2')
+        for raw_record in old_records:
+            record = Result(**raw_record)
+            record = assign_lineage(record)
+            print(record)
+            with open(result_json, 'w') as f:
+                json.dump(old_records, f)
+            log.info(f'{record.identifier} lineage assigned')
+            # break
+        # break
     return
 
 
