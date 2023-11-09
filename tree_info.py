@@ -18,44 +18,42 @@ def get_taxon_list() -> (set, set, set, set):
     return species, genus, family, order
 
 
-def get_word_list(words: str) -> (list, list):
+def get_word_list(words: str) -> (set, set):
     word_list = re.split(pattern, words)
-    species_list = list()
-    lineage_list = list()
+    species_alike = set()
+    lineage_alike = set()
     for i in range(len(word_list)-1):
         if word_list[i].isupper():
             if word_list[i+1].islower():
-                species_list.append(' '.join(word_list[i:i+2]))
+                species_alike.add(' '.join(word_list[i:i+2]))
             else:
-                lineage_list.append(word_list[i])
-    return species_list, lineage_list
+                lineage_alike.add(word_list[i])
+    return species_alike, lineage_alike
 
 
-def get_lineage(word_list: list) -> str:
+def get_lineage(species_alike, lineage_alike: set) -> str:
     # species first, then genus, family or order
     # but return genus rather than species
-    genus_name = ''
-    family_name = ''
-    order_name = ''
-    for word in word_list:
-        if word in genus_set:
-            return word
-        elif word in family_set:
-            family_name = word
-        elif word in order_set:
-            order_name = word
-    if family_name != '':
-        return family_name
-    elif order_name != '':
-        return order_name
-    else:
-        return ''
+    species_name = species_alike & species_set
+    if species_name:
+        return species_name.pop().split(' ')[0]
+    genus_name = lineage_alike & genus_set
+    if genus_name:
+        return genus_name.pop()
+    family_name = lineage_alike & family_set
+    if family_name:
+        return family_name.pop()
+    order_name = lineage_alike & order_set
+    if order_name:
+        return order_name.pop()
+    return ''
+
 
 
 def assign_lineage(record: Result):
     words = ' '.join([record.title, record.abstract])
-    word_list = clean_abstract(words)
-    record.lineage = get_lineage(word_list)
+    species_list, lineage_list = get_word_list(words)
+    record.lineage = get_lineage(species_list, lineage_list)
     return record
 
 
