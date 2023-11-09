@@ -18,7 +18,7 @@ def get_taxon_list() -> (set, set, set, set):
     return species, genus, family, order
 
 
-def get_word_list(words: str) -> (set, set):
+def get_name_candidate(words: str) -> (set, set):
     word_list = re.split(pattern, words)
     species_alike = set()
     lineage_alike = set()
@@ -49,11 +49,10 @@ def get_lineage(species_alike, lineage_alike: set) -> str:
     return ''
 
 
-
 def assign_lineage(record: Result):
     words = ' '.join([record.title, record.abstract])
-    species_list, lineage_list = get_word_list(words)
-    record.lineage = get_lineage(species_list, lineage_list)
+    species_alike, lineage_alike = get_name_candidate(words)
+    record.lineage = get_lineage(species_alike, lineage_alike)
     return record
 
 
