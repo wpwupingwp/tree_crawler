@@ -6,16 +6,25 @@ from pathlib import Path
 from utils import Result, Tree
 from global_vars import log
 
-global species_set, genus_set, family_set, order_set
 pattern = re.compile(r'\W')
 
 
 def get_taxon_list() -> (set, set, set, set):
-    species = set()
-    genus = set()
-    family = set()
-    order = set()
-    return species, genus, family, order
+    # from barcodefinder
+    global species_set, genus_set, family_set, order_set
+    with open('data/species.csv', 'r') as _:
+        species_set = set(_.read().strip().split(','))
+    with open('data/genus.csv', 'r') as _:
+        genus_set = set(_.read().strip().split(','))
+    with open('data/other_families.csv', 'r') as _:
+        family_set = set(_.read().strip().split(','))
+    with open('data/plant_families.csv', 'r') as _:
+        family_set.update(_.read().strip().split(','))
+    with open('data/animal_orders.csv', 'r') as _:
+        order_set = set(_.read().strip().split(','))
+    with open('data/other_orders.csv', 'r') as _:
+        order_set.update(_.read().strip().split(','))
+    return species_set, genus_set, family_set, order_set
 
 
 def get_name_candidate(words: str) -> (set, set):
@@ -31,7 +40,7 @@ def get_name_candidate(words: str) -> (set, set):
     return species_alike, lineage_alike
 
 
-def get_lineage(species_alike, lineage_alike: set) -> str:
+def get_lineage(species_alike: set, lineage_alike: set) -> str:
     # species first, then genus, family or order
     # but return genus rather than species
     species_name = species_alike & species_set
@@ -50,6 +59,7 @@ def get_lineage(species_alike, lineage_alike: set) -> str:
 
 
 def assign_lineage(record: Result):
+    # todo: test
     words = ' '.join([record.title, record.abstract])
     species_alike, lineage_alike = get_name_candidate(words)
     record.lineage = get_lineage(species_alike, lineage_alike)
@@ -57,6 +67,7 @@ def assign_lineage(record: Result):
 
 
 def main():
+    get_taxon_list()
     file_list = list(Path('result').glob('*.result.json.new'))
     for result_json in file_list:
         old_records = json.load(open(result_json, 'r'))
