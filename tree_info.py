@@ -50,7 +50,7 @@ def get_taxon_by_words(word_set: set) -> str:
     return ''
 
 
-def assign_taxon_by_text(record: Result):
+def assign_taxon_by_text(record: Result) -> Result:
     # todo: test
     word_set = get_words(record)
     record.lineage = get_taxon_by_words(word_set)
@@ -66,14 +66,13 @@ def get_taxon_by_names(names: list[str]) -> str:
             genus_count[name] = genus_count.get(name, 0) + 1
     if len(genus_count) > 0:
         top = sorted(genus_count.items(), key=lambda x:x[1], reverse=True)[0]
-        log.info(f'{top[0]} {top[1]} times, set as tree taxon')
+        log.debug(f'{top[0]} {top[1]} times, set as tree taxon')
         return top[0]
     else:
-        log.warning('Valid taxon name not found.')
         return ''
 
 
-def assign_taxon_by_tree(record: Result) -> str:
+def assign_taxon_by_tree(record: Result) -> Result:
     # todo: test
     # assume one paper for one taxon
     taxon = ''
@@ -87,11 +86,15 @@ def assign_taxon_by_tree(record: Result) -> str:
             try:
                 tree = dendropy.Tree.get(path=tree_file, schema=schema)
             except Exception:
-                return taxon
+                log.warning('Invalid tree format.')
+                return record
             names_raw = tree.taxon_namespace
             names = [_.label.replace('_', ' ').split(' ')[0] for _ in names_raw]
             taxon = get_taxon_by_names(names)
-    return taxon
+            if taxon:
+                break
+    record.lineage = taxon
+    return record
 
 
 def main():
@@ -110,7 +113,11 @@ def main():
             total += 1
             record = assign_taxon_by_text(record)
             if not record.lineage:
-                log.warning(f'{record.doi} cannot find lineage in abstract')
+                log.warning(f'{record.doi} cannot find lineage in abstract.')
+                record = assign_taxon_by_tree(record)
+                if not record.lineage:
+                    log.warning(f'{record.doi} cannot find lineage in tree.')
+                    pass
             else:
                 assigned += 1
                 log.info(f'Assign {record.lineage} to {record.doi}')
