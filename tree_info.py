@@ -64,9 +64,13 @@ def get_taxon_by_names(names: list[str]) -> str:
     for name in names:
         if name in genus_set:
             genus_count[name] = genus_count.get(name, 0) + 1
-    top = sorted(genus_count.items(), key=lambda x:x[1], reverse=True)[0]
-    log.info(f'{top[0]} {top[1]} times, set as tree taxon')
-    return top[0]
+    if len(genus_count) > 0:
+        top = sorted(genus_count.items(), key=lambda x:x[1], reverse=True)[0]
+        log.info(f'{top[0]} {top[1]} times, set as tree taxon')
+        return top[0]
+    else:
+        log.warning('Valid taxon name not found.')
+        return ''
 
 
 def assign_taxon_by_tree(record: Result) -> str:
@@ -87,8 +91,6 @@ def assign_taxon_by_tree(record: Result) -> str:
             names_raw = tree.taxon_namespace
             names = [_.label.replace('_', ' ').split(' ')[0] for _ in names_raw]
             taxon = get_taxon_by_names(names)
-            if taxon:
-                return taxon
     return taxon
 
 
@@ -108,7 +110,7 @@ def main():
             total += 1
             record = assign_taxon_by_text(record)
             if not record.lineage:
-                log.warning(f'{record.doi} cannot find lineage')
+                log.warning(f'{record.doi} cannot find lineage in abstract')
             else:
                 assigned += 1
                 log.info(f'Assign {record.lineage} to {record.doi}')
