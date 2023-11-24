@@ -112,21 +112,23 @@ def main():
                 continue
             total += 1
             record = assign_taxon_by_text(record)
-            if not record.lineage:
-                log.warning(f'{record.doi} cannot find lineage in abstract.')
-                record = assign_taxon_by_tree(record)
-                if not record.lineage:
-                    log.warning(f'{record.doi} cannot find lineage in tree.')
-                    pass
-            else:
+            if record.lineage:
                 assigned += 1
                 log.info(f'Assign {record.lineage} to {record.doi}')
-            with open(new_result_file, 'w') as f:
-                pass
-                # json.dump(new_records, f)
-            # break
-        # break
-    print(total, assigned)
+            else:
+                log.warning(f'{record.doi} cannot find lineage in abstract.')
+                record = assign_taxon_by_tree(record)
+                if record.lineage:
+                    assigned += 1
+                    log.info(f'Assign {record.lineage} to {record.doi}')
+                else:
+                    log.warning(f'{record.doi} cannot find lineage in tree.')
+            new_records.append(record.to_dict())
+        with open(new_result_file, 'w') as f:
+            json.dump(new_records, f)
+            log.info(f'Write result to {new_result_file}')
+        break
+    print(f'{total=},{assigned=}')
     return
 
 
