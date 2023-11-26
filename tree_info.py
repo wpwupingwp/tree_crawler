@@ -73,7 +73,7 @@ def fix_path(old: str) -> Path:
     return new
 
 
-def assign_taxon_by_tree(record: Result) -> Result:
+def assign_taxon_by_tree(record: Result) -> str:
     # todo: test
     # assume one paper for one taxon
     taxon = ''
@@ -93,14 +93,13 @@ def assign_taxon_by_tree(record: Result) -> Result:
                 tree = dendropy.Tree.get(path=tree_file, schema=schema)
             except Exception:
                 log.warning(f'Invalid tree format {tree_file}')
-                return record
+                return taxon
             names_raw = tree.taxon_namespace
             names = [_.label.replace('_', ' ').split(' ')[0] for _ in names_raw]
             taxon = get_taxon_by_names(names)
             if taxon:
                 break
-    record.lineage = taxon
-    return record
+    return taxon
 
 
 def assign_taxon(record: Result) -> (str, str):
@@ -110,10 +109,10 @@ def assign_taxon(record: Result) -> (str, str):
         lineage = ''
         kind = 'fail'
     elif text_taxon and (not tree_taxon):
-        lineage = tree_taxon
-        kind = 'by_text'
-    elif text_taxon and (not tree_taxon):
         lineage = text_taxon
+        kind = 'by_text'
+    elif tree_taxon and (not text_taxon):
+        lineage = tree_taxon
         kind = 'by_tree'
     elif text_taxon and tree_taxon:
         if text_taxon == tree_taxon:
@@ -149,7 +148,7 @@ def main():
             if kind == 'fail':
                 log.error(f'Cannot assign taxon to {record.doi}')
             else:
-                log.info(f'Assign {kind} to {record.doi} {kind}')
+                log.info(f'Assign {lineage} to {record.doi} {kind}')
             assign_count[kind] += 1
             record.lineage = lineage
             record.assign_type = kind
