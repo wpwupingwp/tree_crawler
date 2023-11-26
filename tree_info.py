@@ -101,8 +101,11 @@ def assign_taxon_by_tree(record: Result) -> str:
                 log.warning(f'Invalid tree format {tree_file}')
                 return taxon
             names_raw = tree.taxon_namespace
-            names = [_.label.replace('_', ' ').split(' ')[0] for _ in names_raw]
-            taxon = get_taxon_by_names(names)
+            names = list()
+            for name in names_raw:
+                maybe_taxon_name = name.replace('_', ' ').split(' ')
+                names.extend(maybe_taxon_name)
+            taxon = get_taxon_by_names(maybe_taxon_name)
             if taxon:
                 break
     return taxon
