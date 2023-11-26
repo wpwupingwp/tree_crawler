@@ -135,7 +135,7 @@ def main():
     file_list = list(Path('result').glob('*.result.json.new'))
     total_paper = 0
     total_tree = 0
-    assign_count = dict(total=0, by_text=0, by_tree=0)
+    assign_count = dict(not_found=0, by_text=0, by_tree=0)
     for result_json in file_list:
         log.info(f'Process {result_json}')
         old_records = json.load(open(result_json, 'r'))
@@ -147,29 +147,14 @@ def main():
                 continue
             total_paper += 1
             total_tree += len(record.tree_files)
-            record = assign_taxon_by_text(record)
-            if record.lineage:
-                assigned += 1
-                assigned_by_text += 1
-                log.info(f'Assign {record.lineage} to {record.doi} by text')
-            else:
-                log.warning(f'{record.doi} cannot find lineage in abstract')
-                try:
-                    record = assign_taxon_by_tree(record)
-                except FileNotFoundError:
-                    continue
-                if record.lineage:
-                    assigned += 1
-                    assigned_by_tree += 1
-                    log.info(f'Assign {record.lineage} to {record.doi} by tree')
-                else:
-                    log.warning(f'{record.doi} cannot find lineage in tree')
+            record, kind = assign_taxon(record)
+            assign_count[kind] += 1
             new_records.append(record.to_dict())
         with open(new_result_file, 'w') as f:
             json.dump(new_records, f)
             log.info(f'Write result to {new_result_file}')
         # break
-    print(f'{total=},{assigned=}')
+    print(f'{list(assign_count.items())},{total_paper=},{total_tree=}')
     return
 
 
