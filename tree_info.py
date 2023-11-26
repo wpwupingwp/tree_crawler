@@ -14,16 +14,22 @@ pattern = re.compile(r'\W')
 def get_taxon_list() -> (set, set, set):
     # from barcodefinder
     global genus_set, family_set, order_set
+    with open('data/1000_frequent_words .txt', 'r') as _:
+        english_set_ = list(_.read().strip().split(','))
+        english_set = {word.capitalize() for word in english_set_}
     with open('data/genus.csv', 'r') as _:
         genus_set = set(_.read().strip().split(','))
+        genus_set.difference_update(english_set)
     with open('data/other_families.csv', 'r') as _:
         family_set = set(_.read().strip().split(','))
     with open('data/plant_families.csv', 'r') as _:
         family_set.update(_.read().strip().split(','))
+    family_set.difference_update(english_set)
     with open('data/animal_orders.csv', 'r') as _:
         order_set = set(_.read().strip().split(','))
     with open('data/other_orders.csv', 'r') as _:
         order_set.update(_.read().strip().split(','))
+        order_set.difference_update(english_set)
     return genus_set, family_set, order_set
 
 
