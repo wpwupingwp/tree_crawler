@@ -55,7 +55,8 @@ def assign_taxon_by_text(record: Result) -> Result:
     word_set = get_words(record)
     record.lineage = get_taxon_by_words(word_set)
     if not record.lineage:
-        print(word_set, record.abstract)
+        pass
+        # print(word_set, record.abstract)
     return record
 
 
@@ -90,7 +91,8 @@ def assign_taxon_by_tree(record: Result) -> Result:
         if not tree_file.exists():
             log.warning(f'{tree_file} not found')
             continue
-        with open(tree_file, 'r') as _:
+        with open(tree_file, 'r', encoding='utf-8', errors='ignore') as _:
+            # print(tree_file)
             line = _.readline()
             if line.startswith('#NEXUS'):
                 schema = 'nexus'
@@ -99,7 +101,7 @@ def assign_taxon_by_tree(record: Result) -> Result:
             try:
                 tree = dendropy.Tree.get(path=tree_file, schema=schema)
             except Exception:
-                log.warning('Invalid tree format')
+                log.warning(f'Invalid tree format {tree_file}')
                 return record
             names_raw = tree.taxon_namespace
             names = [_.label.replace('_', ' ').split(' ')[0] for _ in names_raw]
@@ -117,17 +119,14 @@ def assign_taxon(record: Result) -> (Result, str):
         kind = 'by_text'
         log.info(f'Assign {record.lineage} to {record.doi} by text')
         return record, kind
-    else:
-        log.warning(f'{record.doi} cannot find lineage in abstract')
     record = assign_taxon_by_tree(record)
     if record.lineage:
         kind = 'by_tree'
         log.info(f'Assign {record.lineage} to {record.doi} by tree')
         return record, kind
     else:
-        log.warning(f'{record.doi} cannot find lineage in tree')
+        log.error(f'{record.doi} cannot find lineage in text or tree')
     return record, 'not_found'
-
 
 
 def main():
@@ -149,6 +148,7 @@ def main():
             total_tree += len(record.tree_files)
             record, kind = assign_taxon(record)
             assign_count[kind] += 1
+            record.assign_type = kind
             new_records.append(record.to_dict())
         with open(new_result_file, 'w') as f:
             json.dump(new_records, f)
