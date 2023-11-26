@@ -72,11 +72,24 @@ def get_taxon_by_names(names: list[str]) -> str:
         return ''
 
 
+def fix_path(old: str) -> Path:
+    new = str(old)
+    if old.startswith('/Users'):
+        new = old.replace('/Users/wuping/Ramdisk/trees', r'R:/tree_crawl_out')
+    new = Path(new)
+    log.debug(f'{old}, {new}')
+    return new
+
+
 def assign_taxon_by_tree(record: Result) -> Result:
     # todo: test
     # assume one paper for one taxon
     taxon = ''
     for tree_file in record.tree_files:
+        tree_file = fix_path(tree_file)
+        if not tree_file.exists():
+            log.warning(f'{tree_file} not found')
+            continue
         with open(tree_file, 'r') as _:
             line = _.readline()
             if line.startswith('#NEXUS'):
@@ -86,7 +99,7 @@ def assign_taxon_by_tree(record: Result) -> Result:
             try:
                 tree = dendropy.Tree.get(path=tree_file, schema=schema)
             except Exception:
-                log.warning('Invalid tree format.')
+                log.warning('Invalid tree format')
                 return record
             names_raw = tree.taxon_namespace
             names = [_.label.replace('_', ' ').split(' ')[0] for _ in names_raw]
@@ -102,7 +115,9 @@ def main():
     file_list = list(Path('result').glob('*.result.json.new'))
     total = 0
     assigned = 0
+    assigned_by_text = 0
     for result_json in file_list:
+        log.info(f'Process {result_json}')
         old_records = json.load(open(result_json, 'r'))
         new_records = list()
         new_result_file = result_json.with_suffix('.json.new2')
@@ -114,20 +129,24 @@ def main():
             record = assign_taxon_by_text(record)
             if record.lineage:
                 assigned += 1
-                log.info(f'Assign {record.lineage} to {record.doi}')
+                log.info(f'Assign {record.lineage} to {record.doi} by text')
             else:
-                log.warning(f'{record.doi} cannot find lineage in abstract.')
-                record = assign_taxon_by_tree(record)
+                log.warning(f'{record.doi} cannot find lineage in abstract')
+                try:
+                    record = assign_taxon_by_tree(record)
+                except FileNotFoundError:
+                    print(record.tree_files)
+                    raise
                 if record.lineage:
                     assigned += 1
-                    log.info(f'Assign {record.lineage} to {record.doi}')
+                    log.info(f'Assign {record.lineage} to {record.doi} by tree')
                 else:
-                    log.warning(f'{record.doi} cannot find lineage in tree.')
+                    log.warning(f'{record.doi} cannot find lineage in tree')
             new_records.append(record.to_dict())
         with open(new_result_file, 'w') as f:
             json.dump(new_records, f)
             log.info(f'Write result to {new_result_file}')
-        break
+        # break
     print(f'{total=},{assigned=}')
     return
 
