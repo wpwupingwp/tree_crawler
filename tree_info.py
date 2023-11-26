@@ -110,12 +110,32 @@ def assign_taxon_by_tree(record: Result) -> Result:
     return record
 
 
+def assign_taxon(record: Result) -> (Result, str):
+    record = assign_taxon_by_text(record)
+    kind = ''
+    if record.lineage:
+        kind = 'by_text'
+        log.info(f'Assign {record.lineage} to {record.doi} by text')
+        return record, kind
+    else:
+        log.warning(f'{record.doi} cannot find lineage in abstract')
+    record = assign_taxon_by_tree(record)
+    if record.lineage:
+        kind = 'by_tree'
+        log.info(f'Assign {record.lineage} to {record.doi} by tree')
+        return record, kind
+    else:
+        log.warning(f'{record.doi} cannot find lineage in tree')
+    return record, 'not_found'
+
+
+
 def main():
     get_taxon_list()
     file_list = list(Path('result').glob('*.result.json.new'))
-    total = 0
-    assigned = 0
-    assigned_by_text = 0
+    total_paper = 0
+    total_tree = 0
+    assign_count = dict(total=0, by_text=0, by_tree=0)
     for result_json in file_list:
         log.info(f'Process {result_json}')
         old_records = json.load(open(result_json, 'r'))
@@ -125,20 +145,22 @@ def main():
             record = Result(**raw_record)
             if not record.tree_files:
                 continue
-            total += 1
+            total_paper += 1
+            total_tree += len(record.tree_files)
             record = assign_taxon_by_text(record)
             if record.lineage:
                 assigned += 1
+                assigned_by_text += 1
                 log.info(f'Assign {record.lineage} to {record.doi} by text')
             else:
                 log.warning(f'{record.doi} cannot find lineage in abstract')
                 try:
                     record = assign_taxon_by_tree(record)
                 except FileNotFoundError:
-                    print(record.tree_files)
-                    raise
+                    continue
                 if record.lineage:
                     assigned += 1
+                    assigned_by_tree += 1
                     log.info(f'Assign {record.lineage} to {record.doi} by tree')
                 else:
                     log.warning(f'{record.doi} cannot find lineage in tree')
