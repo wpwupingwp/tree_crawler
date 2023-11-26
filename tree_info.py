@@ -36,7 +36,9 @@ def get_words(record: Result) -> set:
     return word_set
 
 
-def get_taxon_by_words(word_set: set) -> str:
+def assign_taxon_by_text(record: Result) -> str:
+    # todo: test
+    word_set = get_words(record)
     order_name = word_set & order_set
     if order_name:
         return order_name.pop()
@@ -47,16 +49,6 @@ def get_taxon_by_words(word_set: set) -> str:
     if genus_name:
         return genus_name.pop()
     return ''
-
-
-def assign_taxon_by_text(record: Result) -> Result:
-    # todo: test
-    word_set = get_words(record)
-    record.lineage = get_taxon_by_words(word_set)
-    if not record.lineage:
-        pass
-        # print(word_set, record.abstract)
-    return record
 
 
 def get_taxon_by_names(names: list[str]) -> str:
@@ -111,21 +103,29 @@ def assign_taxon_by_tree(record: Result) -> Result:
     return record
 
 
-def assign_taxon(record: Result) -> (Result, str):
-    record = assign_taxon_by_text(record)
-    kind = ''
-    if record.lineage:
+def assign_taxon(record: Result) -> (str, str):
+    text_taxon = assign_taxon_by_text(record)
+    tree_taxon = assign_taxon_by_tree(record)
+    if (not text_taxon) and (not tree_taxon):
+        lineage = ''
+        kind = 'fail'
+    elif text_taxon and (not tree_taxon):
+        lineage = tree_taxon
         kind = 'by_text'
-        log.info(f'Assign {record.lineage} to {record.doi} by text')
-        return record, kind
-    record = assign_taxon_by_tree(record)
-    if record.lineage:
+    elif text_taxon and (not tree_taxon):
+        lineage = text_taxon
         kind = 'by_tree'
-        log.info(f'Assign {record.lineage} to {record.doi} by tree')
-        return record, kind
+    elif text_taxon and tree_taxon:
+        if text_taxon == tree_taxon:
+            lineage = text_taxon
+            kind = 'both'
+        else:
+            lineage = tree_taxon
+            # diffrent result from tree and text
+            kind = 'by_tree_bad'
     else:
-        log.error(f'{record.doi} cannot find lineage in text or tree')
-    return record, 'not_found'
+        assert False, f'{text_taxon}, {tree_taxon}'
+    return lineage, kind
 
 
 def main():
@@ -133,7 +133,7 @@ def main():
     file_list = list(Path('result').glob('*.result.json.new'))
     total_paper = 0
     total_tree = 0
-    assign_count = dict(not_found=0, by_text=0, by_tree=0)
+    assign_count = dict(fail=0, by_text=0, by_tree=0, both=0, by_tree_bad=0)
     for result_json in file_list:
         log.info(f'Process {result_json}')
         old_records = json.load(open(result_json, 'r'))
@@ -145,8 +145,13 @@ def main():
                 continue
             total_paper += 1
             total_tree += len(record.tree_files)
-            record, kind = assign_taxon(record)
+            lineage, kind = assign_taxon(record)
+            if kind == 'fail':
+                log.error(f'Cannot assign taxon to {record.doi}')
+            else:
+                log.info(f'Assign {kind} to {record.doi} {kind}')
             assign_count[kind] += 1
+            record.lineage = lineage
             record.assign_type = kind
             new_records.append(record.to_dict())
         with open(new_result_file, 'w') as f:
