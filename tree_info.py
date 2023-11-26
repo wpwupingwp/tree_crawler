@@ -37,16 +37,15 @@ def get_words(record: Result) -> set:
 
 
 def get_taxon_by_words(word_set: set) -> str:
-    # first genus, family or order
-    genus_name = word_set & genus_set
-    if genus_name:
-        return genus_name.pop()
-    family_name = word_set & family_set
-    if family_name:
-        return family_name.pop()
     order_name = word_set & order_set
     if order_name:
         return order_name.pop()
+    family_name = word_set & family_set
+    if family_name:
+        return family_name.pop()
+    genus_name = word_set & genus_set
+    if genus_name:
+        return genus_name.pop()
     return ''
 
 
