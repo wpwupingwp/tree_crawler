@@ -5,30 +5,29 @@ from pathlib import Path
 from concurrent.futures import ProcessPoolExecutor
 
 import dendropy
-from utils import Result, Tree
+from utils import Result
 from global_vars import log
 
 pattern = re.compile(r'\W')
 
 
-def get_word_list() -> (set, set, set, set):
+# def get_word_list() -> (set, set, set, set):
     # from barcodefinder
-    global genus_set, family_set, order_set, english_set
     # https://www.ef.edu/english-resources/english-vocabulary/top-1000-words/
-    with open('data/1000_frequent_words .txt', 'r') as _:
-        english_set_ = list(_.read().strip().split(','))
-        english_set = {word.capitalize() for word in english_set_}
-    with open('data/genus.csv', 'r') as _:
-        genus_set = set(_.read().strip().split(','))
-    with open('data/other_families.csv', 'r') as _:
-        family_set = set(_.read().strip().split(','))
-    with open('data/plant_families.csv', 'r') as _:
-        family_set.update(_.read().strip().split(','))
-    with open('data/animal_orders.csv', 'r') as _:
-        order_set = set(_.read().strip().split(','))
-    with open('data/other_orders.csv', 'r') as _:
-        order_set.update(_.read().strip().split(','))
-    return genus_set, family_set, order_set, english_set
+with open('data/1000_frequent_words .txt', 'r') as _:
+    english_set_ = list(_.read().strip().split(','))
+    english_set = {word.capitalize() for word in english_set_}
+with open('data/genus.csv', 'r') as _:
+    genus_set = set(_.read().strip().split(','))
+with open('data/other_families.csv', 'r') as _:
+    family_set = set(_.read().strip().split(','))
+with open('data/plant_families.csv', 'r') as _:
+    family_set.update(_.read().strip().split(','))
+with open('data/animal_orders.csv', 'r') as _:
+    order_set = set(_.read().strip().split(','))
+with open('data/other_orders.csv', 'r') as _:
+    order_set.update(_.read().strip().split(','))
+    # return genus_set, family_set, order_set, english_set
 
 
 def get_words(record: Result) -> set:
@@ -133,37 +132,46 @@ def assign_taxon(record: Result) -> (str, str):
     return lineage, kind
 
 
-def main():
-    get_word_list()
-    file_list = list(Path('result').glob('*.result.json.new'))
+def wrap_for_parallel(result_json: Path) -> (int, int, list):
     total_paper = 0
     total_tree = 0
+    log.info(f'Process {result_json}')
+    old_records = json.load(open(result_json, 'r'))
+    updated_record = list()
+    # new_result_file = result_json.with_suffix('.json.new2')
+    for raw_record in old_records:
+        record = Result(**raw_record)
+        if not record.tree_files:
+            continue
+        total_paper += 1
+        total_tree += len(record.tree_files)
+        lineage, kind = assign_taxon(record)
+        if kind == 'fail':
+            log.error(f'Cannot assign taxon to {record.doi}')
+        else:
+            log.info(f'Assign {lineage} to {record.doi} {kind}')
+        record.lineage = lineage
+        record.assign_type = kind
+        updated_record.append(record.to_dict())
+    return total_paper, total_tree, updated_record
+
+
+def main():
+    # get_word_list()
+    file_list = list(Path('result').glob('*.result.json.new'))
     assign_count = dict(fail=0, by_text=0, by_tree=0, both=0, by_text_bad=0)
     output = Path('assigned_taxon.json')
     new_records = list()
-    for result_json in file_list:
-        log.info(f'Process {result_json}')
-        old_records = json.load(open(result_json, 'r'))
-        # new_result_file = result_json.with_suffix('.json.new2')
-        for raw_record in old_records:
-            record = Result(**raw_record)
-            if not record.tree_files:
-                continue
-            total_paper += 1
-            total_tree += len(record.tree_files)
-            lineage, kind = assign_taxon(record)
-            if kind == 'fail':
-                log.error(f'Cannot assign taxon to {record.doi}')
-            else:
-                log.info(f'Assign {lineage} to {record.doi} {kind}')
-            assign_count[kind] += 1
-            record.lineage = lineage
-            record.assign_type = kind
-            new_records.append(record.to_dict())
-        # with open(new_result_file, 'w') as f:
-            # json.dump(new_records, f)
-            # log.info(f'Write result to {new_result_file}')
-        # break
+    total_paper = 0
+    total_tree = 0
+    with ProcessPoolExecutor(max_workers=8) as executor:
+        for n_paper, n_tree, updated in executor.map(
+                wrap_for_parallel, file_list):
+            new_records.extend(updated)
+            total_paper += n_paper
+            total_tree += n_tree
+    for _ in new_records:
+        assign_count[_['assign_type']] += 1
     with open(output, 'w', encoding='utf-8') as f:
         json.dump(new_records, f, indent=True)
     log.info(f'Write result to {output}')
