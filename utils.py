@@ -61,7 +61,7 @@ class Result:
     volume: int = 0
     lineage: tuple[str] = tuple()
     tree_files: tuple[str] = tuple()
-    trees: tuple[Tree] = tuple()
+    assign_type: str = ''
 
     def __hash__(self):
         return hash(self.doi)
