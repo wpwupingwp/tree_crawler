@@ -121,13 +121,12 @@ def assign_taxon(record: Result) -> (str, str):
         lineage = tree_taxon
         kind = 'by_tree'
     elif text_taxon and tree_taxon:
+        lineage = text_taxon
         if text_taxon == tree_taxon:
-            lineage = text_taxon
             kind = 'both'
         else:
-            lineage = tree_taxon
             # diffrent result from tree and text
-            kind = 'by_tree_bad'
+            kind = 'by_text_bad'
     else:
         assert False, f'{text_taxon}, {tree_taxon}'
     return lineage, kind
