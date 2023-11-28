@@ -137,12 +137,13 @@ def main():
     file_list = list(Path('result').glob('*.result.json.new'))
     total_paper = 0
     total_tree = 0
-    assign_count = dict(fail=0, by_text=0, by_tree=0, both=0, by_tree_bad=0)
+    assign_count = dict(fail=0, by_text=0, by_tree=0, both=0, by_text_bad=0)
+    output = Path('assigned_taxon.json')
+    new_records = list()
     for result_json in file_list:
         log.info(f'Process {result_json}')
         old_records = json.load(open(result_json, 'r'))
-        new_records = list()
-        new_result_file = result_json.with_suffix('.json.new2')
+        # new_result_file = result_json.with_suffix('.json.new2')
         for raw_record in old_records:
             record = Result(**raw_record)
             if not record.tree_files:
@@ -158,11 +159,15 @@ def main():
             record.lineage = lineage
             record.assign_type = kind
             new_records.append(record.to_dict())
-        with open(new_result_file, 'w') as f:
-            json.dump(new_records, f)
-            log.info(f'Write result to {new_result_file}')
+        # with open(new_result_file, 'w') as f:
+            # json.dump(new_records, f)
+            # log.info(f'Write result to {new_result_file}')
         # break
-    print(f'{list(assign_count.items())},{total_paper=},{total_tree=}')
+    with open(output, 'w', encoding='utf-8') as f:
+        json.dump(new_records, f, indent=True)
+    log.info(f'Write result to {output}')
+    log.info(f'{list(assign_count.items())},{total_paper=},{total_tree=}')
+    log.info('Done.')
     return
 
 
