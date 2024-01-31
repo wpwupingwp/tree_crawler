@@ -46,6 +46,11 @@ class Tree:
     tree_file: str = ''
 
 
+    def to_dict(self):
+        return asdict(self)
+
+
+
 @dataclass
 class Result:
     abstract: str = ''
@@ -59,7 +64,7 @@ class Result:
     pub_date: str = ''
     title: str = ''
     volume: int = 0
-    lineage: tuple[str] = tuple()
+    lineage: str = ''
     tree_files: tuple[str] = tuple()
     assign_type: str = ''
 
