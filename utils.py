@@ -44,6 +44,7 @@ class Tree:
     tree_quality: str = ''
     # should check if exists, rename
     tree_file: str = ''
+    doi: str = ''
 
 
     def to_dict(self):
