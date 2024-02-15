@@ -156,6 +156,23 @@ def wrap_for_parallel(result_json: Path) -> (int, int, list):
     return total_paper, total_tree, updated_record
 
 
+def remove_duplicate(filename):
+    # remove repeat record in assigned_taxon.json
+    with open(filename, 'r') as f:
+        raw = json.load(f)
+    new = dict()
+    for record in raw:
+        if record['doi'] == '':
+            key = Path(record['tree_files'][0]).name
+        else:
+            key = record['doi']
+        new[key] = record
+    new_name = filename.with_suffix('.new.json')
+    with open(new_name, 'w') as out:
+        json.dump(new, out, indent=True)
+    return new_name
+
+
 def main():
     # get_word_list()
     file_list = list(Path('result').glob('*.result.json.new'))
@@ -176,6 +193,9 @@ def main():
         json.dump(new_records, f, indent=True)
     log.info(f'Write result to {output}')
     log.info(f'{list(assign_count.items())},{total_paper=},{total_tree=}')
+    log.info(f'Remove duplicate entries from {output}')
+    new_out = remove_duplicate(output)
+    log.info(f'Final output {new_out}')
     log.info('Done.')
     return
 
