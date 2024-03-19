@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import dataclasses
 import json
 import re
 from pathlib import Path
@@ -81,6 +82,7 @@ def assign_taxon_by_tree(record: Result) -> str:
     # todo: test
     # assume one paper for one taxon
     taxon = ''
+    return taxon
     for tree_file in record.tree_files:
         tree_file = fix_path(tree_file)
         if not tree_file.exists():
@@ -139,7 +141,13 @@ def wrap_for_parallel(result_json: Path) -> (int, int, list):
     old_records = json.load(open(result_json, 'r'))
     updated_record = list()
     # new_result_file = result_json.with_suffix('.json.new2')
+    fields = {i.name for i in dataclasses.fields(Result)}
+    # sometimes Result may have unwanted fields in kwargs
     for raw_record in old_records:
+        keys = list(raw_record.keys())
+        for key in keys:
+            if key not in fields:
+                raw_record.pop(key)
         record = Result(**raw_record)
         if not record.tree_files:
             continue
@@ -176,8 +184,10 @@ def remove_duplicate(filename):
 def main():
     # get_word_list()
     file_list = list(Path('result').glob('*.result.json.new'))
+    file_list = [Path(r'R:\paper.json')]
     assign_count = dict(fail=0, by_text=0, by_tree=0, both=0, by_text_bad=0)
     output = Path('assigned_taxon.json')
+    output = Path(r'R:\out.json')
     new_records = list()
     total_paper = 0
     total_tree = 0
