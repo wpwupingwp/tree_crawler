@@ -34,6 +34,8 @@ with open('data/other_orders.csv', 'r') as _:
 def get_words(record: Result) -> set:
     word_set = set()
     for content in (record.title, record.abstract):
+        if content is None:
+            content = ''
         for word in re.split(pattern, content):
             if word and len(word) > 1 and word[0].isupper():
                 word_set.add(word)
@@ -82,7 +84,6 @@ def assign_taxon_by_tree(record: Result) -> str:
     # todo: test
     # assume one paper for one taxon
     taxon = ''
-    return taxon
     for tree_file in record.tree_files:
         tree_file = fix_path(tree_file)
         if not tree_file.exists():
@@ -184,10 +185,10 @@ def remove_duplicate(filename):
 def main():
     # get_word_list()
     file_list = list(Path('result').glob('*.result.json.new'))
-    file_list = [Path(r'R:\paper.json')]
+    # file_list = [Path(r'R:\paper.json')]
     assign_count = dict(fail=0, by_text=0, by_tree=0, both=0, by_text_bad=0)
     output = Path('assigned_taxon.json')
-    output = Path(r'R:\out.json')
+    # output = Path(r'R:\out.json')
     new_records = list()
     total_paper = 0
     total_tree = 0
