@@ -22,10 +22,8 @@ coloredlogs.install(level=logging.INFO, fmt=FMT, datefmt=DATEFMT)
 CHECK_SIZE = 50
 
 
-async def main():
-    # pubmed result json
-    json_files = list(Path().glob('2010*.json'))
-    input_jsons = [i for i in json_files if 'result' not in i.name]
+async def main(input_list: list):
+    input_jsons = [i for i in input_list if 'result' not in i.name]
     for input_json in input_jsons:
         headers = await get_api_token()
         log.info(input_json)
@@ -78,4 +76,6 @@ async def main():
 
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    # pubmed result json
+    json_files = list(Path().glob('2023*.json'))
+    asyncio.run(main(json_files))

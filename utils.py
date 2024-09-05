@@ -51,7 +51,6 @@ class Tree:
         return asdict(self)
 
 
-
 @dataclass
 class Result:
     abstract: str = ''
@@ -135,6 +134,8 @@ async def download(session: aiohttp.ClientSession, download_url: str,
             if target_size != len(bin_data):
                 log.warning(
                     f'Size mismatch {target_size} != {actual_size}')
+                print(list(resp.headers.items()))
+                raise SystemExit(1)
                 await asyncio.sleep(0.5)
             else:
                 ok = True
