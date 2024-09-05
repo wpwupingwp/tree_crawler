@@ -129,13 +129,16 @@ async def download(session: aiohttp.ClientSession, download_url: str,
                     await asyncio.sleep(1.0)
                     continue
                 bin_data = await resp.read()
-            target_size = int(resp.headers.get('content-length', 0))
+            if 'content-length' in resp.headers:
+                target_size = int(resp.headers['content-length'])
+            else:
+                # some response header is {'Transfer-Encoding': 'chunked'}
+                # without content length info
+                target_size = len(bin_data)
             actual_size = len(bin_data)
             if target_size != len(bin_data):
                 log.warning(
                     f'Size mismatch {target_size} != {actual_size}')
-                print(list(resp.headers.items()))
-                raise SystemExit(1)
                 await asyncio.sleep(0.5)
             else:
                 ok = True

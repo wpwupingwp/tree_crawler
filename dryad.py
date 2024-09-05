@@ -40,6 +40,8 @@ async def get_api_token() -> dict:
             if not resp.ok:
                 log.warning(f'Get token fail {resp.status}')
                 return {}
+            else:
+                print(await resp.json())
             access_token = (await resp.json())['access_token']
         headers = {'Authorization': f'Bearer {access_token}'}
         async with session.get('https://datadryad.org/api/v2/search',
