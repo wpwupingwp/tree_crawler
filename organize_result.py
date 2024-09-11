@@ -11,7 +11,8 @@ doi_list = set()
 
 
 def main():
-    file_list = list(Path('result').glob('*.result.json'))
+    file_list = list(Path('.').glob('*.result.json'))
+    print(file_list)
     for filename in file_list:
         journal_name = filename.stem.split('.')[0].split('-')[-1]
         if journal_name not in total:

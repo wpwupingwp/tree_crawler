@@ -7,18 +7,28 @@ import pandas as pd
 
 from utils import Tree, get_doi
 
-def main():
-    table = pd.read_excel('R:\\assigned_taxon.new_20240205-modified.xlsx')
+
+def read_table() -> dict[str, tuple]:
+    table_file = Path(r'R:\assigned_taxon.new_20240205-modified.xlsx')
+    if not table_file.exists():
+        return dict()
     doi_old_new = dict()
-    x = table[['doi','assigned_taxon', 'New_name']]
+    table = pd.read_excel(table_file)
+    x = table[['doi', 'assigned_taxon', 'New_name']]
     for index, row in x.iterrows():
         doi = get_doi(row.doi, doi_type='normal')
         doi_old_new[doi] = (row.assigned_taxon, row.New_name)
+    return doi_old_new
+
+
+def main():
+    doi_old_new = read_table()
     # assign unique filename, parse path info
     data = json.load(open('assigned_taxon.new.json', 'r'))
     merge = dict()
     out_path = Path(r'R:\\out')
-    # out_path.mkdir()
+    if not out_path.exists():
+        out_path.mkdir()
     trees = list()
     bad = list()
     good = 0

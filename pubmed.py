@@ -21,7 +21,9 @@ Entrez.email = 'test@example.org'
 
 
 def get_journal_list() -> tuple:
-    with open('journal_list.txt', 'r') as _:
+    # list_file = 'journal_list.txt'
+    list_file = 'journal_list2.txt'
+    with open(list_file, 'r') as _:
         journal_list = tuple([i.strip() for i in _.readlines()])
     return journal_list
 

@@ -4,7 +4,7 @@ import json
 
 print('Journal,Article,Have_Tree,Trees')
 total = [0] * 4
-result_jsons = Path('result').glob('*.result.json')
+result_jsons = Path('.').glob('*.result.json')
 for result_file in result_jsons:
     input_json = Path(result_file.name.removesuffix('.result.json')+'.json')
     data = json.load(open(result_file, 'r'))

@@ -48,7 +48,7 @@ async def main(input_list: list):
             for record in data[checkpoint_n:]:
                 # API limit
                 # 120/min
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(1)
                 doi = record['doi']
                 log.info(f'{count+checkpoint_n+1} {doi}')
                 result = await get_trees_figshare(session, doi)

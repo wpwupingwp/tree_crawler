@@ -139,7 +139,7 @@ async def download(session: aiohttp.ClientSession, download_url: str,
             if target_size != len(bin_data):
                 log.warning(
                     f'Size mismatch {target_size} != {actual_size}')
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(1)
             else:
                 ok = True
                 break
@@ -147,7 +147,7 @@ async def download(session: aiohttp.ClientSession, download_url: str,
             raise
         except BaseException as e:
             log.warning(f'Download {download_url} fail {e}')
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(1)
     if ok:
         log.info(f'Got {download_url}')
     else:

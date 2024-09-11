@@ -22,8 +22,9 @@ async def query_doi(session: ClientSession, doi: str) -> dict:
                'container-title,published')}
     """
     params = {'mailto': EMAIL}
-    await asyncio.sleep(0.022)
-    async with session.get(QUERY_URL + doi, params=params) as resp:
+    proxy = 'http://127.0.0.1:7890'
+    await asyncio.sleep(0.03)
+    async with session.get(QUERY_URL + doi, params=params, proxy=proxy) as resp:
         if resp.status != 200:
             print((await resp.text()))
             return {}
@@ -31,7 +32,9 @@ async def query_doi(session: ClientSession, doi: str) -> dict:
         msg = r['message']
         # pprint(r)
         if 'DOI' not in msg:
-            pprint(msg)
+            print(doi, 'not found')
+            # pprint(msg)
+            return {}
         if doi != msg['DOI']:
             log.error('bad record')
             return {}
@@ -60,16 +63,45 @@ def fill_field(record: Result, msg: dict) -> Result:
     return record
 
 
-async def test(doi='10.3732/ajb.1400290'):
+async def test(session, doi='10.3732/ajb.1400290'):
     record = Result(doi=doi)
-    r = await query_doi(doi)
+    r = await query_doi(session, doi)
     new_record = fill_field(record, r)
     print(new_record)
 
 
+async def batch_query_doi():
+    # doi, year
+    session = ClientSession()
+    result = []
+    with open('R:\\doi_list.csv', 'r') as _, open('R:\\doi_result.csv', 'a') as out:
+        for line in _:
+            doi, year_db = line.strip().split(',')
+            try:
+                msg = await query_doi(session, doi)
+            except Exception as e:
+                await asyncio.sleep(0.1)
+                out.write(f'retry {doi}\n')
+                continue
+            if 'published-print' in msg:
+                year_doi = msg['published-print']['date-parts'][0][0]
+            elif 'published-online' in msg:
+                year_doi = msg['published-online']['date-parts'][0][0]
+            else:
+                year_doi = 0
+            print(doi, year_db, msg.get('DOI', ''), year_doi)
+            year_doi = str(year_doi)
+            if year_doi != '0' and year_doi != year_db and year_db == '2022':
+                result.append((doi, year_doi))
+                print('write')
+                out.write(f'{doi},{year_doi}\n')
+                out.flush()
+    await session.close()
+
+
 async def main():
     # use api to fetch article info by doi
-    file_list = list(Path('result').glob('*.result.json'))
+    file_list = list(Path('.').glob('*.result.json'))
     for result_json in file_list:
         session = ClientSession()
         new_result = result_json.with_suffix('.json.new')
@@ -104,3 +136,4 @@ async def main():
 
 
 asyncio.run(main())
+# asyncio.run(batch_query_doi())

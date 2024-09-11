@@ -184,7 +184,7 @@ def remove_duplicate(filename):
 
 def main():
     # get_word_list()
-    file_list = list(Path('result').glob('*.result.json.new'))
+    file_list = list(Path('.').glob('*.result.json.new'))
     # file_list = [Path(r'R:\paper.json')]
     assign_count = dict(fail=0, by_text=0, by_tree=0, both=0, by_text_bad=0)
     output = Path('assigned_taxon.json')
