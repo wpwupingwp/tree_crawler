@@ -1,24 +1,24 @@
 [project]
 name = "tree-crawler"
-version = "0.1.0"
+version = "0.2.0"
 description = "Add your description here"
 authors = [
     { name = "Ping Wu", email = "wpwupingwp@outlook.com" }
 ]
 dependencies = [
+    "aiofile>=3.12.3",
+    "aiohttp>=3.14.3",
+    "biopython>=1.88",
     "jupyterlab>=4.3.6",
+    "loguru>=0.7.3",
 ]
 readme = "README.md"
-requires-python = ">3.12"
+requires-python = ">3.11"
 license = { text = "AGPL-3.0" }
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
-
-[tool.rye]
-managed = true
-dev-dependencies = []
 
 [tool.hatch.metadata]
 allow-direct-references = true

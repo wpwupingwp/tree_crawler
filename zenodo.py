@@ -1,1 +1,0 @@
-# dns refers to 0.0.0.0, blocked by China
