@@ -2,6 +2,7 @@
 import json
 import asyncio
 from pathlib import Path
+from functools import cache
 
 print('pip install aiohttp loguru')
 from aiohttp import ClientSession
@@ -12,6 +13,37 @@ from global_vars import log
 
 QUERY_URL = 'https://api.crossref.org/works/'
 EMAIL = 'wpwupingwp@outlook.com'
+
+BAD_JOURNAL_NAME = {
+        'unknown',
+        'unpublished',
+        'tbd',
+        'springer plus',
+        'not yet',
+        'unk',
+        'tba',
+        'na',
+        'n a',
+        'none',
+        'null',
+        'nan',
+        'nil',
+        'missing',
+        'not available',
+        'not applicable',
+        'not published',
+        'no journal',
+        'in press',
+        'submitted',
+        'forthcoming',
+        'to be determined',
+        'to be decided',
+        '待定',
+        '未知',
+        '未发表',
+        '无',
+        '无期刊',
+}
 
 
 async def query_doi(session: ClientSession, doi: str) -> dict:
@@ -62,6 +94,32 @@ def fill_field(record: Result, msg: dict) -> Result:
         record.title = msg['title'][0]
     record.volume = msg.get('volume', '')
     return record
+
+
+@cache
+async def batch_get_journal_name(session, old_journal_name: str, doi: str):
+    if not doi:
+        if old_journal_name.lower() in BAD_JOURNAL_NAME:
+            return 'Unknown'
+    else:
+        new_journal_name = await get_journal_name(session, doi)
+        if new_journal_name:
+            return new_journal_name
+    log.warning(f'Cannot find journal name from "{old_journal_name}" doi {doi}')
+    return old_journal_name
+
+
+async def get_journal_name(session, doi: str) -> str:
+    journal_name = ''
+    msg = await query_doi(session, doi)
+    if not msg:
+        return journal_name
+    try:
+        if len(msg['container-title']) > 0:
+            journal_name = msg['container-title'][0]
+    except KeyError:
+        pass
+    return journal_name
 
 
 async def test(session, doi='10.3732/ajb.1400290'):
