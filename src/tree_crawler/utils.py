@@ -235,3 +235,26 @@ def filter_tree_from_zip(file_bin: bytes, out_folder: Path) -> list:
 
 def pprint(raw: dict):
     print(json.dumps(raw, indent=True))
+
+
+def fill_field(record: Result, msg: dict) -> Result:
+    record.abstract = msg.get('abstract', '')
+    if len(msg['author']) > 0:
+        author = list()
+        for name in msg['author']:
+            if 'given' in name and 'family' in name:
+                author.append(f"{name['given']} {name['family']}")
+        record.author = ','.join(author)
+    if ('created' in msg and 'date-parts' in msg['created'] and
+            len(msg['created']['date-parts']) > 0):
+        record.pub_date = '/'.join(
+            [str(_) for _ in msg['created']['date-parts'][0]])
+    record.issue = msg.get('issue', '')
+    if len(msg['container-title']) > 0:
+        record.journal_name = msg['container-title'][0]
+    if len(msg['title']) > 0:
+        record.title = msg['title'][0]
+    record.volume = msg.get('volume', '')
+    return record
+
+

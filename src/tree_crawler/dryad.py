@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import json
 from pathlib import Path
 
@@ -7,7 +6,7 @@ import aiohttp
 
 from utils import get_doi, Result, download
 from utils import filter_tree_from_zip, OUT_FOLDER
-from global_vars import log
+from global_vars import log, DRYAD_KEY
 
 DRYAD_SERVER = 'https://datadryad.org/api/v2'
 NEXUS_SUFFIX = '.nex,.nexus'.split(',')
@@ -24,7 +23,7 @@ test_doi = ['10.1101/2020.10.08.331355',
 
 
 async def get_api_token() -> dict:
-    with open('key.txt', 'r') as f:
+    with open(DRYAD_KEY, 'r') as f:
         client_id = f.readline().strip()
         client_secret = f.readline().strip()
     url = 'https://datadryad.org/oauth/token'
@@ -77,7 +76,7 @@ async def search_in_dryad(session: aiohttp.ClientSession, headers: dict,
         return await resp.json()
 
 
-def parse_result(result: dict) -> (str, str, str, str, int, int):
+def parse_result(result: dict) -> tuple[str, str, str, str, int, int]:
     empty_result = ('', '', '', '', -1, -1)
     count = result['count']
     total = result['total']
@@ -111,7 +110,7 @@ def write_tree(result, doi, bin_data) -> None:
 
 
 async def search_doi_in_dryad(session: aiohttp.ClientSession, doi: str,
-                              headers: dict) -> (str, str, int):
+                              headers: dict) -> tuple[str, str, int]:
     result = await search_in_dryad(session, headers, doi)
     # if more than 2 result for one doi, only accept the first
     identifier, title, size, *_ = next(parse_result(result))
@@ -157,6 +156,7 @@ async def search_journal_in_dryad(session: aiohttp.ClientSession,
     log.info(f'Writing results {output_json}')
     with open(output_json, 'w') as f:
         json.dump(results, f, indent=True)
+    return
 
 
 async def get_trees_dryad(session: aiohttp.ClientSession, doi_raw: str,

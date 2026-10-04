@@ -5,7 +5,7 @@ from pathlib import Path
 
 from aiohttp import ClientSession
 
-from utils import get_doi, pprint, Result
+from utils import get_doi, pprint, Result, fill_field
 from global_vars import log, PROXY
 
 QUERY_URL = 'https://api.crossref.org/works/'
@@ -20,17 +20,17 @@ async def query_doi(session: ClientSession, doi: str) -> dict:
                'container-title,published')}
     """
     params = {'mailto': EMAIL}
-    proxy = 'http://127.0.0.1:7890'
+    proxy = PROXY
     await asyncio.sleep(0.03)
     async with session.get(QUERY_URL + doi, params=params, proxy=proxy) as resp:
         if resp.status != 200:
-            print((await resp.text()))
+            log.warning((await resp.text()))
             return {}
         r = await resp.json()
         msg = r['message']
         # pprint(r)
         if 'DOI' not in msg:
-            print(doi, 'not found')
+            log.warning(f'{doi} not found')
             # pprint(msg)
             return {}
         if doi != msg['DOI']:
@@ -38,27 +38,6 @@ async def query_doi(session: ClientSession, doi: str) -> dict:
             return {}
         else:
             return msg
-
-
-def fill_field(record: Result, msg: dict) -> Result:
-    record.abstract = msg.get('abstract', '')
-    if len(msg['author']) > 0:
-        author = list()
-        for name in msg['author']:
-            if 'given' in name and 'family' in name:
-                author.append(f"{name['given']} {name['family']}")
-        record.author = ','.join(author)
-    if ('created' in msg and 'date-parts' in msg['created'] and
-            len(msg['created']['date-parts']) > 0):
-        record.pub_date = '/'.join(
-            [str(_) for _ in msg['created']['date-parts'][0]])
-    record.issue = msg.get('issue', '')
-    if len(msg['container-title']) > 0:
-        record.journal_name = msg['container-title'][0]
-    if len(msg['title']) > 0:
-        record.title = msg['title'][0]
-    record.volume = msg.get('volume', '')
-    return record
 
 
 async def test(session, doi='10.3732/ajb.1400290'):
@@ -79,7 +58,8 @@ async def batch_query_doi():
                 msg = await query_doi(session, doi)
             except Exception as e:
                 await asyncio.sleep(0.1)
-                out.write(f'retry {doi}\n')
+                # out.write(f'retry {doi}\n')
+                log.warning(f'Retry {doi}')
                 continue
             if 'published-print' in msg:
                 year_doi = msg['published-print']['date-parts'][0][0]
@@ -87,11 +67,11 @@ async def batch_query_doi():
                 year_doi = msg['published-online']['date-parts'][0][0]
             else:
                 year_doi = 0
-            print(doi, year_db, msg.get('DOI', ''), year_doi)
+            log.info([doi, year_db, msg.get('DOI', ''), year_doi])
             year_doi = str(year_doi)
-            if year_doi != '0' and year_doi != year_db and year_db == '2022':
+            if year_doi != '0' and year_doi != year_db :# and year_db == '2022':
                 result.append((doi, year_doi))
-                print('write')
+                log.info(f'Got new year {year_doi} {doi}')
                 out.write(f'{doi},{year_doi}\n')
                 out.flush()
     await session.close()

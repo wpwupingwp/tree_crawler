@@ -14,3 +14,4 @@ log.add(sys.stderr, format=FMT, level='INFO')
 log.add('log.txt', format=FMT, level='INFO', encoding='utf-8')
 
 PROXY = 'http://127.0.0.1:7890'
+DRYAD_KEY = r'E:/Linux/tree_crawler/key.txt'

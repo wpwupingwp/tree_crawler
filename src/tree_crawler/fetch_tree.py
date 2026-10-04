@@ -1,7 +1,6 @@
 from pathlib import Path
 import asyncio
 import json
-import logging
 
 import aiohttp
 
@@ -10,6 +9,7 @@ from figshare import get_trees_figshare
 
 from global_vars import log
 
+CHECK_SIZE = 100
 
 async def main(input_list: list):
     input_jsons = [i for i in input_list if 'result' not in i.name]

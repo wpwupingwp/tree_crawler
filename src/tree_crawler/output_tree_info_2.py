@@ -111,7 +111,7 @@ def assign_taxon_by_tree(record: Result) -> str:
     return taxon
 
 
-def assign_taxon(record: Result) -> (str, str):
+def assign_taxon(record: Result) -> tuple[str, str]:
     text_taxon = assign_taxon_by_text(record)
     tree_taxon = assign_taxon_by_tree(record)
     if (not text_taxon) and (not tree_taxon):
@@ -135,7 +135,7 @@ def assign_taxon(record: Result) -> (str, str):
     return lineage, kind
 
 
-def wrap_for_parallel(result_json: Path) -> (int, int, list):
+def wrap_for_parallel(result_json: Path) -> tuple[int, int, list]:
     total_paper = 0
     total_tree = 0
     log.info(f'Process {result_json}')

@@ -7,7 +7,7 @@ from functools import cache
 print('pip install aiohttp loguru')
 from aiohttp import ClientSession
 
-from utils import get_doi, Result
+from utils import get_doi, Result, fill_field
 from global_vars import log
 
 QUERY_URL = 'https://api.crossref.org/works/'
@@ -72,27 +72,6 @@ async def query_doi(session: ClientSession, doi: str) -> dict:
             return {}
         else:
             return msg
-
-
-def fill_field(record: Result, msg: dict) -> Result:
-    record.abstract = msg.get('abstract', '')
-    if len(msg['author']) > 0:
-        author = list()
-        for name in msg['author']:
-            if 'given' in name and 'family' in name:
-                author.append(f"{name['given']} {name['family']}")
-        record.author = ','.join(author)
-    if ('created' in msg and 'date-parts' in msg['created'] and
-            len(msg['created']['date-parts']) > 0):
-        record.pub_date = '/'.join(
-            [str(_) for _ in msg['created']['date-parts'][0]])
-    record.issue = msg.get('issue', '')
-    if len(msg['container-title']) > 0:
-        record.journal_name = msg['container-title'][0]
-    if len(msg['title']) > 0:
-        record.title = msg['title'][0]
-    record.volume = msg.get('volume', '')
-    return record
 
 
 @cache

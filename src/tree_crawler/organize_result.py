@@ -2,6 +2,7 @@ import json
 import csv
 from pathlib import Path
 
+from global_vars import log
 
 no_tree = list()
 have_tree = list()
@@ -12,8 +13,8 @@ doi_list = set()
 
 def main():
     file_list = list(Path('.').glob('*.result.json'))
-    print(file_list)
     for filename in file_list:
+        log.info(f'opening {filename}')
         journal_name = filename.stem.split('.')[0].split('-')[-1]
         if journal_name not in total:
             # record, all paper, clean paper, have_tree, trees
@@ -50,7 +51,7 @@ def main():
             writer.writerow([key, *total[key]])
     with open('stats.json', 'w') as out4:
         json.dump(stats, out4, indent=True)
-    print('done')
+    log.info('done')
 
 
 if __name__ == '__main__':
