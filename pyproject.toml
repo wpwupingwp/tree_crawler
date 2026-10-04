@@ -9,6 +9,7 @@ dependencies = [
     "aiofile>=3.12.3",
     "aiohttp>=3.14.3",
     "biopython>=1.88",
+    "dendropy>=5.1.0",
     "jupyterlab>=4.3.6",
     "loguru>=0.7.3",
 ]
