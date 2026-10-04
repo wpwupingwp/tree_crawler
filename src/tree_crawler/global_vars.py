@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 import sys
+from pathlib import Path
+
 from loguru import logger as log
 
 FMT = ('<green>{time:MM-DD HH:mm:ss}</green> | '
@@ -16,3 +18,8 @@ log.add('log.txt', format=FMT, level='INFO', encoding='utf-8')
 PROXY = 'http://127.0.0.1:7890'
 DRYAD_KEY = r'E:/Linux/tree_crawler/key.txt'
 YEAR = 2026
+
+OUT_FOLDER = Path(r'R:\tree_crawl_out').absolute()
+# OUT_FOLDER = Path('/Users/wuping/Ramdisk/trees').absolute()
+if not OUT_FOLDER.exists():
+    OUT_FOLDER.mkdir()

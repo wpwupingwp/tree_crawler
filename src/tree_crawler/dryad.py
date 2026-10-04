@@ -5,8 +5,8 @@ from pathlib import Path
 import aiohttp
 
 from utils import get_doi, Result, download
-from utils import filter_tree_from_zip, OUT_FOLDER
-from global_vars import log, DRYAD_KEY, YEAR
+from utils import filter_tree_from_zip
+from global_vars import log, DRYAD_KEY, YEAR, OUT_FOLDER
 
 DRYAD_SERVER = 'https://datadryad.org/api/v2'
 NEXUS_SUFFIX = '.nex,.nexus'.split(',')
@@ -51,7 +51,7 @@ async def get_api_token() -> dict:
                 return {}
             else:
                 result = await resp.json()
-                log.info(result)
+                log.info(list(result.keys()))
                 log.info('Token ok')
     return headers
 
@@ -156,7 +156,7 @@ async def search_journal_in_dryad(session: aiohttp.ClientSession,
     log.info(f'Writing results {output_json}')
     with open(output_json, 'w') as f:
         json.dump(results, f, indent=True)
-    return
+    return ''
 
 
 async def get_trees_dryad(session: aiohttp.ClientSession, doi_raw: str,

@@ -5,9 +5,9 @@ from aiohttp import ClientSession
 
 from utils import filter_tree_from_zip, is_valid_tree
 from utils import download, Result, get_doi
-from utils import TREE_SUFFIX, ZIP_SUFFIX, TXT_SUFFIX, OUT_FOLDER
+from utils import TREE_SUFFIX, ZIP_SUFFIX, TXT_SUFFIX
 
-from global_vars import log
+from global_vars import log, OUT_FOLDER
 
 # figshare item type id
 DATASET = 3

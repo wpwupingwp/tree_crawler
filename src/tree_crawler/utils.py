@@ -4,26 +4,20 @@ from pathlib import Path
 from zipfile import ZipFile, BadZipfile
 import asyncio
 import json
-import logging
 import re
 
 import aiohttp
 import dendropy
 
+from global_vars import log, PROXY
+
 MAX_SIZE = 1024 * 1024 * 100
-proxy = 'http://127.0.0.1:7890'
 
 NEXUS_SUFFIX = set('.nex,.nexus'.split(','))
 TREE_SUFFIX = set('.nwk,.newick,.nex,.nexus,.tre,.tree,.treefile'.split(','))
 TXT_SUFFIX = {'.txt'}
 ZIP_SUFFIX = {'.zip'}
 TARGET_SUFFIX = TREE_SUFFIX | ZIP_SUFFIX | TXT_SUFFIX | NEXUS_SUFFIX
-OUT_FOLDER = Path(r'R:\tree_crawl_out').absolute()
-# OUT_FOLDER = Path('/Users/wuping/Ramdisk/trees').absolute()
-if not OUT_FOLDER.exists():
-    OUT_FOLDER.mkdir()
-
-log = logging.getLogger('fetch_tree')
 
 
 @dataclass
@@ -121,7 +115,7 @@ async def download(session: aiohttp.ClientSession, download_url: str,
     while retry_n > 0:
         retry_n -= 1
         try:
-            async with session.get(download_url, proxy=proxy, headers=headers
+            async with session.get(download_url, proxy=PROXY, headers=headers
                                    ) as resp:
                 if not resp.ok:
                     log.warning(f'Download {download_url} fail {resp.status}')
