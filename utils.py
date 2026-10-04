@@ -90,8 +90,8 @@ class Result:
 
 def get_doi(raw_doi: str, doi_type='default') -> str:
     # doi of article
-    # 10.1234/12345
-    doi_pattern = re.compile(r'\d+\.\d+/[^ ]+')
+    # 10.1234/1234
+    doi_pattern = re.compile(r'10\.\d{4,9}/[-._;()/:A-Za-z0-9]+', re.IGNORECASE)
     match = re.search(doi_pattern, raw_doi)
     if match is not None:
         doi = match.group()
@@ -104,7 +104,7 @@ def get_doi(raw_doi: str, doi_type='default') -> str:
     elif doi_type == 'dryad':
         return f'doi%3A{doi.replace("/", "%2F")}'
     elif doi_type == 'folder':
-        return re.sub(r'[^A-z0-9_.]', '_', doi)
+        return re.sub(r'[^A-Za-z0-9_.]', '_', doi)
     else:
         return doi
 
