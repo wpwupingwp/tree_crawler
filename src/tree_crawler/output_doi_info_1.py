@@ -110,8 +110,9 @@ async def main():
             new_result_list.append(record.to_dict())
         print(new_result, len(old_records))
         await session.close()
-        json.dump(new_result_list, open(new_result, 'w'), indent=True)
+        json.dump(new_result_list, open(new_result, 'w'), indent=2)
         log.info(f'{len(new_result_list)} new records saved')
+    return
 
 
 asyncio.run(main())

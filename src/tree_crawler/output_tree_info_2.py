@@ -170,15 +170,16 @@ def remove_duplicate(filename):
     with open(filename, 'r') as f:
         raw = json.load(f)
     new = dict()
-    for record in raw:
-        if record['doi'] == '':
-            key = Path(record['tree_files'][0]).name
-        else:
+    for i, record in enumerate(raw):
+        doi = (record.get('doi') or '').strip()
+        if doi:
             key = record['doi']
+        else:
+            key = f'{i}-{Path(record['tree_files'][0]).name}'
         new[key] = record
     new_name = filename.with_suffix('.new.json')
     with open(new_name, 'w') as out:
-        json.dump(new, out, indent=True)
+        json.dump(new, out, indent=2)
     return new_name
 
 
