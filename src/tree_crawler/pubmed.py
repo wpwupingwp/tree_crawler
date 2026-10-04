@@ -147,8 +147,8 @@ if __name__ == '__main__':
     # start_date = '2023/07/01'
     # end_date = '2022/07/15'
     # PNAS too many articles
-    start_date = '2023/01/01'
-    end_date = '2024/12/31'
+    start_date = '2025/01/01'
+    end_date = '2026/12/31'
     for start_date, end_date in [(start_date, end_date,)]:
         print(start_date, end_date)
         for journal in get_journal_list()[:]:
