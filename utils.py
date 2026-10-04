@@ -157,19 +157,34 @@ async def download(session: aiohttp.ClientSession, download_url: str,
 
 def is_valid_tree(tmpfile: Path) -> bool:
     # test if file is newick or nexus tree
-    # if not, DELETE the file
-    content = tmpfile.read_text(errors='ignore')
+    _NEXUS_MARKER = "#NEXUS"
+    _MIN_N = 3
+    if not tmpfile.exists():
+        return False
+    content = tmpfile.read_text(encoding='utf-8', errors='ignore')
+    if content.lstrip().upper().startswith(_NEXUS_MARKER):
+        schema = 'nexus'
+    else:
+        schema = 'newick'
     try:
-        _ = dendropy.Tree.get(data=content, schema='newick')
-        return True
+        tree = dendropy.Tree.get(data=content, schema=schema)
     except Exception:
-        pass
+        return False
+    if tree is None or tree.seed_node is None:
+        return False
     try:
-        _ = dendropy.Tree.get(data=content, schema='nexus')
-        return True
+        leaves = list(tree.leaf_nodes())
+        internal_nodes = list(tree.internal_nodes())
     except Exception:
-        pass
-    return False
+        return False
+    if len(leaves) < _MIN_N or len(internal_nodes) < 1:
+        return False
+    valid_leaves = [f for f in leaves
+                    if f.taxon is not None and f.taxon.label is not None
+                    and len(f.taxon.label)>=1]
+    if len(valid_leaves) < _MIN_N:
+        return False
+    return True
 
 
 def extract_tree(z: ZipFile, out_folder: Path):
