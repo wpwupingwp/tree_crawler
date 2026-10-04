@@ -6,12 +6,11 @@ from pathlib import Path
 import aiohttp
 
 from utils import get_doi, Result, download
-from utils import filter_tree_from_zip
-from utils import OUT_FOLDER
+from utils import filter_tree_from_zip, OUT_FOLDER
+from global_vars import log
 
 DRYAD_SERVER = 'https://datadryad.org/api/v2'
 NEXUS_SUFFIX = '.nex,.nexus'.split(',')
-log = logging.getLogger('fetch_tree')
 
 test_doi = ['10.1101/2020.10.08.331355',
             '10.1111/jbi.13789',
@@ -41,7 +40,7 @@ async def get_api_token() -> dict:
                 log.warning(f'Get token fail {resp.status}')
                 return {}
             else:
-                print(await resp.json())
+                log.info(await resp.json())
             access_token = (await resp.json())['access_token']
         headers = {'Authorization': f'Bearer {access_token}'}
         async with session.get('https://datadryad.org/api/v2/search',
@@ -49,11 +48,11 @@ async def get_api_token() -> dict:
                                headers=headers) as resp:
             if not resp.ok:
                 log.error('Bad token')
-                print(resp.status, resp.text)
+                log.info(f'{resp.status}, {resp.text}')
                 return {}
             else:
                 result = await resp.json()
-                print(result)
+                log.info(result)
                 log.info('Token ok')
     return headers
 
@@ -185,9 +184,9 @@ async def dryad_main(doi_list: list) -> tuple:
             *[get_trees_dryad(session, doi, headers) for doi in doi_list])
     for i in results:
         if i.empty():
-            print('Empty', i)
+            log.info(f'{i} empty')
         else:
-            print(i)
+            log.info(f'{i}')
     return results
 
 

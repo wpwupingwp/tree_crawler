@@ -1,6 +1,5 @@
 from pathlib import Path
 import asyncio
-import logging
 
 from aiohttp import ClientSession
 
@@ -8,10 +7,11 @@ from utils import filter_tree_from_zip, is_valid_tree
 from utils import download, Result, get_doi
 from utils import TREE_SUFFIX, ZIP_SUFFIX, TXT_SUFFIX, OUT_FOLDER
 
+from global_vars import log
+
 # figshare item type id
 DATASET = 3
 FIGSHARE_SERVER = 'https://api.figshare.com/v2'
-log = logging.getLogger('fetch_tree')
 
 # https://api.figshare.com/v2/file/download/17716346 fail 403
 test_doi = ['10.1021/ja953595k'
@@ -120,9 +120,9 @@ async def figshare_main(doi_list: list) -> list:
         if isinstance(i, Exception):
             raise i
         if i.empty():
-            print('Empty', i)
+            log.info(f'{i} empty')
         else:
-            print(i)
+            log.info(i)
     return results
 
 

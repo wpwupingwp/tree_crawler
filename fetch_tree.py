@@ -4,22 +4,11 @@ import json
 import logging
 
 import aiohttp
-import coloredlogs
 
 from dryad import get_trees_dryad, get_api_token
 from figshare import get_trees_figshare
 
-FMT = '%(asctime)s %(levelname)-8s %(message)s'
-DATEFMT = '%H:%M:%S'
-logging.basicConfig(format=FMT, datefmt=DATEFMT, level=logging.INFO)
-log = logging.getLogger('fetch_tree')
-fmt = logging.Formatter(FMT, DATEFMT)
-file_handler = logging.FileHandler('log.txt', 'a')
-file_handler.setFormatter(fmt)
-log.addHandler(file_handler)
-coloredlogs.install(level=logging.INFO, fmt=FMT, datefmt=DATEFMT)
-
-CHECK_SIZE = 50
+from global_vars import log
 
 
 async def main(input_list: list):

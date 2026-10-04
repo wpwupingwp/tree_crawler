@@ -1,14 +1,16 @@
 #!/usr/bin/python3
-import logging
+import sys
+from loguru import logger as log
 
-import coloredlogs
+FMT = ('<green>{time:MM-DD HH:mm:ss}</green> | '
+       '<level>{level: <8}</level> | '
+       # todo: remove in release version
+       # '<cyan>{name}</cyan>:'
+       '<cyan>{function}</cyan>:'
+       '<cyan>{line}</cyan> - '
+       '<level>{message}</level>')
+log.remove()
+log.add(sys.stderr, format=FMT, level='INFO')
+log.add('log.txt', format=FMT, level='INFO', encoding='utf-8')
 
-FMT = '%(asctime)s %(levelname)-8s %(message)s'
-DATEFMT = '%H:%M:%S'
-logging.basicConfig(format=FMT, datefmt=DATEFMT, level=logging.INFO)
-log = logging.getLogger('fetch_tree')
-fmt = logging.Formatter(FMT, DATEFMT)
-file_handler = logging.FileHandler('log.txt', 'a')
-file_handler.setFormatter(fmt)
-log.addHandler(file_handler)
-coloredlogs.install(level=logging.INFO, fmt=FMT, datefmt=DATEFMT)
+PROXY = 'http://127.0.0.1:7890'

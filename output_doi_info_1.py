@@ -1,14 +1,12 @@
 #!/usr/bin/python3
 import json
 import asyncio
-import logging
 from pathlib import Path
 
 from aiohttp import ClientSession
-import coloredlogs
 
 from utils import get_doi, pprint, Result
-from global_vars import log
+from global_vars import log, PROXY
 
 QUERY_URL = 'https://api.crossref.org/works/'
 EMAIL = 'wpwupingwp@outlook.com'
@@ -126,13 +124,14 @@ async def main():
                 try:
                     record = fill_field(record, msg)
                 except KeyError:
-                    print(msg)
+                    log.error(f'Failed to get info from {record.doi}')
                     raise Exception
                 print(record)
             new_result_list.append(record.to_dict())
         print(new_result, len(old_records))
         await session.close()
         json.dump(new_result_list, open(new_result, 'w'), indent=True)
+        log.info(f'{len(new_result_list)} new records saved')
 
 
 asyncio.run(main())

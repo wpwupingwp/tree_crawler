@@ -6,7 +6,6 @@ from functools import cache
 
 print('pip install aiohttp loguru')
 from aiohttp import ClientSession
-import loguru
 
 from utils import get_doi, Result
 from global_vars import log

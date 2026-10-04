@@ -6,6 +6,7 @@ from shutil import copyfile
 import pandas as pd
 
 from utils import Tree, get_doi
+from global_vars import log
 
 
 def read_table() -> dict[str, tuple]:
@@ -83,7 +84,9 @@ def main():
         json.dump(bad, out_json3, indent=True)
     with open(out_path/'merge.json', 'w') as out_json4:
         json.dump(merge, out_json4, indent=True)
-    print(good, len(bad))
+    log.info(f'{good} good records')
+    log.warning(f'{len(bad)} bad records')
+    return
 
 
 if __name__ == '__main__':
