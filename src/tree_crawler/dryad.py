@@ -6,7 +6,7 @@ import aiohttp
 
 from utils import get_doi, Result, download
 from utils import filter_tree_from_zip, OUT_FOLDER
-from global_vars import log, DRYAD_KEY
+from global_vars import log, DRYAD_KEY, YEAR
 
 DRYAD_SERVER = 'https://datadryad.org/api/v2'
 NEXUS_SUFFIX = '.nex,.nexus'.split(',')
@@ -120,7 +120,7 @@ async def search_doi_in_dryad(session: aiohttp.ClientSession, doi: str,
 async def search_journal_in_dryad(session: aiohttp.ClientSession,
                                   headers: dict, journal: str):
     results = list()
-    output_json = journal.replace(' ', '_') + '.result.json'
+    output_json = journal.replace(' ', '_') + f'.{YEAR}.result.json'
     if Path(output_json).exists():
         log.info(f'{journal} already searched.')
         return ''
