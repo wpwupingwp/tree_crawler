@@ -1,12 +1,15 @@
+import asyncio
+import json
+from calendar import month_abbr
+from io import BytesIO
+from pathlib import Path
+
 import aiofile
 from Bio import Entrez
 from aiohttp import ClientSession
-from calendar import month_abbr
-from io import BytesIO
-import asyncio
-import json
 
 from utils import Result
+from global_vars import log
 
 BASE_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/'
 MONTH2NUM = {month_abbr[i]: f'{i:02d}' for i in range(1, 13)}
@@ -108,6 +111,13 @@ def parse_article_info(info: dict) -> Result:
 
 
 async def main(start_date: str, end_date: str, journal: str):
+    out_file = Path(start_date.replace('/', '') + '-' +
+                    end_date.replace('/', '') + '-' +
+                    journal.replace(' ', '_') + '.json')
+    if out_file.exists() and out_file.stat().st_size > 0:
+        log.warning(f'{out_file} already exists, continue?')
+        if input('Continue? [y/n]').lower() != 'y':
+            return
     query_str = (f'''("{journal}"[Journal]) AND 
     ("{start_date}"[Date - Publication] : "{end_date}"[Date - Publication])''')
     session = ClientSession()
@@ -132,9 +142,6 @@ async def main(start_date: str, end_date: str, journal: str):
             print('\t', article_info.doi)
             result_list.append(article_info.to_dict())
     # output
-    out_file = (start_date.replace('/', '') + '-' +
-                end_date.replace('/', '') + '-' +
-                journal.replace(' ', '_') + '.json')
     async with aiofile.async_open(out_file, 'w', encoding='utf-8') as out:
         await out.write(json.dumps(result_list))
     await session.close()

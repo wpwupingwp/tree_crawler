@@ -19,7 +19,7 @@ PROXY = 'http://127.0.0.1:7890'
 DRYAD_KEY = r'E:/Linux/tree_crawler/key.txt'
 YEAR = 2026
 
-OUT_FOLDER = Path(r'R:\tree_crawl_out').absolute()
+OUT_FOLDER = Path(r'G:\tree_crawl_out_2026').absolute()
 # OUT_FOLDER = Path('/Users/wuping/Ramdisk/trees').absolute()
 if not OUT_FOLDER.exists():
     OUT_FOLDER.mkdir()

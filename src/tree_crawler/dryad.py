@@ -1,12 +1,13 @@
 import asyncio
 import json
 from pathlib import Path
+from time import sleep as real_sleep
 
 import aiohttp
 
 from utils import get_doi, Result, download
-from utils import filter_tree_from_zip
-from global_vars import log, DRYAD_KEY, YEAR, OUT_FOLDER
+from utils import filter_tree_from_zip, get_api_token
+from global_vars import log, YEAR, OUT_FOLDER
 
 DRYAD_SERVER = 'https://datadryad.org/api/v2'
 NEXUS_SUFFIX = '.nex,.nexus'.split(',')
@@ -20,40 +21,6 @@ test_doi = ['10.1101/2020.10.08.331355',
             '10.1093/sysbio/49.2.278',
             '10.1098/rspb.2021.2178',
             '10.1111/evo.12614']
-
-
-async def get_api_token() -> dict:
-    with open(DRYAD_KEY, 'r') as f:
-        client_id = f.readline().strip()
-        client_secret = f.readline().strip()
-    url = 'https://datadryad.org/oauth/token'
-    headers = {'Content-Type': 'application/x-www-form-urlencoded',
-               'charset': 'UTF-8'}
-    async with aiohttp.ClientSession() as session:
-        async with session.post(url, headers=headers, params={
-            'client_id': client_id,
-            'client_secret': client_secret,
-            'grant_type': 'client_credentials'
-        }) as resp:
-            if not resp.ok:
-                log.warning(f'Get token fail {resp.status}')
-                return {}
-            else:
-                log.info(await resp.json())
-            access_token = (await resp.json())['access_token']
-        headers = {'Authorization': f'Bearer {access_token}'}
-        async with session.get('https://datadryad.org/api/v2/search',
-                               params={'q': '10.1111/jbi.13789'},
-                               headers=headers) as resp:
-            if not resp.ok:
-                log.error('Bad token')
-                log.info(f'{resp.status}, {resp.text}')
-                return {}
-            else:
-                result = await resp.json()
-                log.info(list(result.keys()))
-                log.info('Token ok')
-    return headers
 
 
 def get_dryad_url(identifier: str) -> str:
@@ -117,8 +84,8 @@ async def search_doi_in_dryad(session: aiohttp.ClientSession, doi: str,
     return identifier, title, size
 
 
-async def search_journal_in_dryad(session: aiohttp.ClientSession,
-                                  headers: dict, journal: str):
+async def search_journal_in_dryad(session: aiohttp.ClientSession, journal: str):
+    headers = await get_api_token()
     results = list()
     output_json = journal.replace(' ', '_') + f'.{YEAR}.result.json'
     if Path(output_json).exists():
@@ -133,6 +100,7 @@ async def search_journal_in_dryad(session: aiohttp.ClientSession,
         log.error(f'0 record found for {journal}')
         return ''
     log.info(f'Got {total} records from journal {journal}')
+    real_sleep(1)
     for page in range(1, total//max_per_page + 2):
         log.info(f'{page}-{page*max_per_page}')
         search_result = await search_in_dryad(session, headers, journal,
@@ -152,6 +120,9 @@ async def search_journal_in_dryad(session: aiohttp.ClientSession,
                 write_tree(result, doi_, bin_data)
                 count_have_tree += 1
                 results.append(result.to_dict())
+            real_sleep(1)
+        real_sleep(1)
+        headers = await get_api_token()
     log.info(f'{count_have_tree} have trees')
     log.info(f'Writing results {output_json}')
     with open(output_json, 'w') as f:

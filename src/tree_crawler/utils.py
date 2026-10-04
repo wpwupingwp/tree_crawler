@@ -1,6 +1,7 @@
 from dataclasses import asdict, dataclass
 from io import BytesIO
 from pathlib import Path
+from time import sleep as real_sleep
 from zipfile import ZipFile, BadZipfile
 import asyncio
 import json
@@ -9,12 +10,12 @@ import re
 import aiohttp
 import dendropy
 
-from global_vars import log, PROXY
+from global_vars import log, PROXY, DRYAD_KEY
 
 MAX_SIZE = 1024 * 1024 * 100
 
 NEXUS_SUFFIX = set('.nex,.nexus'.split(','))
-TREE_SUFFIX = set('.nwk,.newick,.nex,.nexus,.tre,.tree,.treefile'.split(','))
+TREE_SUFFIX = set('.nwk,.newick,.nex,.nexus,.tre,.tree,.treefile,.contree'.split(','))
 TXT_SUFFIX = {'.txt'}
 ZIP_SUFFIX = {'.zip'}
 TARGET_SUFFIX = TREE_SUFFIX | ZIP_SUFFIX | TXT_SUFFIX | NEXUS_SUFFIX
@@ -103,6 +104,38 @@ def get_doi(raw_doi: str, doi_type='default') -> str:
         return doi
 
 
+async def get_api_token() -> dict:
+    with open(DRYAD_KEY, 'r') as f:
+        client_id = f.readline().strip()
+        client_secret = f.readline().strip()
+    url = 'https://datadryad.org/oauth/token'
+    headers = {'Content-Type': 'application/x-www-form-urlencoded',
+               'charset': 'UTF-8'}
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, headers=headers, params={
+            'client_id': client_id,
+            'client_secret': client_secret,
+            'grant_type': 'client_credentials'
+        }) as resp:
+            if not resp.ok:
+                log.warning(f'Get token fail {resp.status}')
+                return {}
+            else:
+                log.info(await resp.json())
+            access_token = (await resp.json())['access_token']
+        headers = {'Authorization': f'Bearer {access_token}'}
+        async with session.get('https://datadryad.org/api/v2/search',
+                               params={'q': '10.1111/jbi.13789'},
+                               headers=headers) as resp:
+            if not resp.ok:
+                log.error('Bad token')
+                log.info(f'{resp.status}, {resp.text}')
+                return {}
+            else:
+                result = await resp.json()
+                log.info(list(result.keys()))
+                log.info('Token ok')
+    return headers
 async def download(session: aiohttp.ClientSession, download_url: str,
                    size: int, headers: dict) -> (bool, bytes):
     ok = False
@@ -118,10 +151,19 @@ async def download(session: aiohttp.ClientSession, download_url: str,
             async with session.get(download_url, proxy=PROXY, headers=headers
                                    ) as resp:
                 if not resp.ok:
-                    log.warning(f'Download {download_url} fail {resp.status}')
-                    log.warning(f'Does headers invalid? {repr(headers)}')
-                    await asyncio.sleep(1.0)
-                    continue
+                    if resp.status == 429:
+                        log.warning('API limit reached')
+                        y = input('Continue? (y/n)')
+                        continue
+                    elif resp.status == 401:
+                        log.info('Renew API limit')
+                        headers = await get_api_token()
+                    else:
+                        log.warning(f'Download {download_url} fail {resp.status}')
+                        log.warning(f'Does headers invalid? {repr(headers)}')
+                        log.warning(resp.headers)
+                        real_sleep(1)
+                        continue
                 bin_data = await resp.read()
             if 'content-length' in resp.headers:
                 target_size = int(resp.headers['content-length'])
@@ -141,7 +183,8 @@ async def download(session: aiohttp.ClientSession, download_url: str,
             raise
         except BaseException as e:
             log.warning(f'Download {download_url} fail {e}')
-            await asyncio.sleep(1)
+            real_sleep(1)
+            # await asyncio.sleep(1)
     if ok:
         log.info(f'Got {download_url}')
     else:
@@ -186,8 +229,10 @@ def extract_tree(z: ZipFile, out_folder: Path):
     for file in z.namelist():
         suffix = Path(file).suffix.lower()
         if suffix not in TARGET_SUFFIX:
-            log.warning(f'{file} is not tree')
+            log.warning(f'Skip {file} by filename suffix')
             continue
+        if '__MACOS' in str(file):
+            log.warning(f'Skip {file} since it is MacOS tempfile')
         # tmpfile = out_folder / file
         try:
             actual_filename = z.extract(file, path=out_folder)
@@ -197,9 +242,10 @@ def extract_tree(z: ZipFile, out_folder: Path):
         if (suffix in TXT_SUFFIX or suffix in NEXUS_SUFFIX or
                 suffix in TREE_SUFFIX):
             if is_valid_tree(tmpfile):
+                log.success(f'{file} is valid')
                 yield tmpfile
             else:
-                log.warning(f'{file} is not tree')
+                log.warning(f'{file} is not a valid treefile')
                 tmpfile.unlink()
         elif suffix in ZIP_SUFFIX:
             log.info(f'Extracting {file}')
