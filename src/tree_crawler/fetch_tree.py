@@ -66,5 +66,5 @@ async def main(input_list: list):
 
 if __name__ == '__main__':
     # pubmed result json
-    json_files = list(Path().glob('2023*.json'))
+    json_files = list(Path().glob('2025*.json'))
     asyncio.run(main(json_files))

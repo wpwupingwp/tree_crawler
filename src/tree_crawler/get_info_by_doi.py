@@ -14,6 +14,9 @@ QUERY_URL = 'https://api.crossref.org/works/'
 EMAIL = 'wpwupingwp@outlook.com'
 
 BAD_JOURNAL_NAME = {
+        '',
+        'null',
+        'none',
         'unknown',
         'unpublished',
         'tbd',
@@ -67,8 +70,8 @@ async def query_doi(session: ClientSession, doi: str) -> dict:
             print(doi, 'not found')
             # pprint(msg)
             return {}
-        if doi != msg['DOI']:
-            log.error('bad record')
+        if doi.lower() != msg['DOI'].lower():
+            log.error(f'bad record {doi} -> {msg["DOI"]}')
             return {}
         else:
             return msg
@@ -136,6 +139,39 @@ async def batch_query_doi():
     await session.close()
 
 
+async def update_journal():
+    import csv
+    session = ClientSession()
+    old_journal_doi_file = Path(r'r:\update.csv').resolve()
+    new_journal_doi_file = Path(r'r:\upate2.csv').resolve()
+    n_update = 0
+    n_bad = 0
+    with open(old_journal_doi_file, 'r', newline='') as _, open(
+            new_journal_doi_file, 'w', newline='') as out:
+        reader = csv.reader(_)
+        writer = csv.writer(out)
+        for row in reader:
+            old_name, doi = row
+            if len(doi) == 0 or doi == 'null':
+                log.warning(f'Skipping {old_name} since doi missing')
+                continue
+            new_name = await batch_get_journal_name(session, old_name, doi)
+            if new_name == 'Unknown':
+                log.warning(f'Bad journal name {old_name}')
+                n_bad += 1
+            elif new_name == old_name:
+                log.info(f'{old_name} is OK')
+            else:
+                n_update += 1
+                log.success(f'{old_name} -> {new_name}')
+                writer.writerow((old_name, new_name))
+    log.info(f'{n_update=}')
+    log.info(f'{n_bad=}')
+    log.info(f'Output {new_journal_doi_file}')
+    await session.close()
+    return
+
+
 async def main():
     # use api to fetch article info by doi
     file_list = list(Path('.').glob('*.result.json'))
@@ -172,4 +208,6 @@ async def main():
         json.dump(new_result_list, open(new_result, 'w'), indent=True)
 
 
-asyncio.run(main())
+# asyncio.run(main())
+# todo: uncomment to run
+asyncio.run(update_journal())
