@@ -33,10 +33,10 @@ def get_dryad_url(identifier: str) -> str:
 
 
 async def search_in_dryad(session: aiohttp.ClientSession, headers: dict,
-                          q: str, page=1, per_page=2) -> dict:
+                          q: str, page=1, per_page=2, since='2025-01-01') -> dict:
     # search in dryad, return json dict
     search_url = f'{DRYAD_SERVER}/search'
-    params = {'q': q, 'page': page, 'per_page': per_page}
+    params = {'q': q, 'page': page, 'per_page': per_page, 'publishedSince': since}
     async with session.get(search_url, params=params, headers=headers) as resp:
         if not resp.ok:
             raise ConnectionError(resp.status)
@@ -84,7 +84,8 @@ async def search_doi_in_dryad(session: aiohttp.ClientSession, doi: str,
     return identifier, title, size
 
 
-async def search_journal_in_dryad(session: aiohttp.ClientSession, journal: str):
+async def search_journal_in_dryad(session: aiohttp.ClientSession, journal: str,
+                                  since: str):
     headers = await get_api_token()
     results = list()
     output_json = journal.replace(' ', '_') + f'.{YEAR}.result.json'
@@ -94,7 +95,7 @@ async def search_journal_in_dryad(session: aiohttp.ClientSession, journal: str):
     count_have_tree = 0
     max_per_page = 100
     try_search_result = await search_in_dryad(session, headers, journal, page=1,
-                                              per_page=1)
+                                              per_page=1, since=since)
     *_, count, total = next(parse_result(try_search_result))
     if count == 0:
         log.error(f'0 record found for {journal}')

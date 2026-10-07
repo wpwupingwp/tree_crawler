@@ -136,11 +136,13 @@ async def get_api_token() -> dict:
                 log.info(list(result.keys()))
                 log.info('Token ok')
     return headers
+
+
 async def download(session: aiohttp.ClientSession, download_url: str,
                    size: int, headers: dict) -> (bool, bytes):
     ok = False
     bin_data = b''
-    retry_n = 10
+    retry_n = 32
     if size > MAX_SIZE:
         log.warning(f'{download_url} too big {size} bp')
         return ok, bin_data

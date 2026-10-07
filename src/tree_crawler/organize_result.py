@@ -3,16 +3,23 @@ import csv
 from pathlib import Path
 
 from global_vars import log
+from utils import get_doi
 
 no_tree = list()
 have_tree = list()
 total = dict()
 stats = dict()
 doi_list = set()
+file_list = list(Path('.').glob('*.result.json'))
+old_doi_file = Path('old_doi.txt')
+with open(old_doi_file, 'r') as f:
+    for line in f:
+        doi_list.add(line.strip())
+log.info(f'Read {len(doi_list)} doi from {old_doi_file}')
+
 
 
 def main():
-    file_list = list(Path('.').glob('*.result.json'))
     for filename in file_list:
         log.info(f'opening {filename}')
         journal_name = filename.stem.split('.')[0].split('-')[-1]
@@ -25,7 +32,8 @@ def main():
             if len(record['journal_name']) == 0:
                 record['journal_name'] = journal_name
             total[journal_name][0] += 1
-            doi = record['doi']
+            # in case of doi from dyrad by 'by_journal.py'
+            doi = get_doi(record['doi'])
             if len(doi) != 0:
                 total[journal_name][1] += 1
                 if doi in doi_list:
