@@ -18,7 +18,6 @@ with open(old_doi_file, 'r') as f:
 log.info(f'Read {len(doi_list)} doi from {old_doi_file}')
 
 
-
 def main():
     for filename in file_list:
         log.info(f'opening {filename}')
