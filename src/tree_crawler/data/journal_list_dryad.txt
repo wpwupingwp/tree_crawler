@@ -1,91 +1,91 @@
-Ecology and Evolution
-PLOS ONE
-Molecular Ecology
-Royal Society Open Science
-Proceedings of the Royal Society B: Biological Sciences
-Proceedings of the Royal Society B
-Journal of Evolutionary Biology
-The American Naturalist
-Functional Ecology
-Journal of Applied Ecology
-Journal of Ecology
-Journal of Animal Ecology
-Biology Letters
-eLife
-Systematic Biology
-Behavioral Ecology
-Oikos
-Heredity
-Molecular Ecology Resources
-Neurology
-Evolutionary Applications
-Biotropica
-Ecography
-Methods in Ecology and Evolution
-Journal of Biogeography
-BMJ Open
-Journal of Avian Biology
-Proceedings of the National Academy of Sciences of the United States of America
-Ecological Applications
-Ecology Letters
-Scientific Reports
-Journal of Experimental Biology
-Journal of Heredity
-Paleobiology
-BMC Evolutionary Biology
-Nature Communications
-Palaeontology
-Diversity and Distributions
 American Journal of Botany
+Animal Behaviour
+BMC Evolutionary Biology
+BMJ Open
+Behavioral Ecology
+Behavioral Ecology and Sociobiology
+Biological Journal of the Linnean Society
+Biological Solutions and Evidence
+Biology Letters
+Biotropica
+Communications Biology
+Conservation Genetics
+Current Biology
+Diversity and Distributions
+Ecography
+Ecological Applications
+Ecological Monographs
+Ecology Letters
+Ecology and Evolution
+Ecosphere
+Environmental DNA
+Evolution Letters
+Evolutionary Applications
+Frontiers in Ecology and Evolution
+Frontiers in Genetics
+Frontiers in Marine Science
+Frontiers in Plant Science
+Functional Ecology
+G3: Genes, Genomes, Genetics
+Genome Biology and Evolution
 Global Change Biology
 Global Ecology and Biogeography
-Ecosphere
-Biological Journal of the Linnean Society
-Molecular Phylogenetics and Evolution
-Systematic Botany
+Heredity
+JAMIA Open
+Journal of Animal Ecology
+Journal of Applied Ecology
+Journal of Avian Biology
+Journal of Biogeography
+Journal of Ecology
+Journal of Evolutionary Biology
+Journal of Experimental Biology
+Journal of Experimental Botany
+Journal of Heredity
 Journal of Paleontology
-Science Advances
-Ecological Monographs
-Nordic Journal of Botany
-New Phytologist
-PLOS Genetics
-Current Biology
-Philosophical Transactions of the Royal Society B
-Scientific Data
+Journal of Systematics and Evolution
+Journal of the Royal Society Interface
+Limnology and Oceanography Letters
+Methods in Ecology and Evolution
 Molecular Biology and Evolution
+Molecular Ecology
+Molecular Ecology Resources
+Molecular Phylogenetics and Evolution
+Nature Communications
+Nature Ecology & Evolution
+Neurology
+New Phytologist
+Nordic Journal of Botany
+Oecologia
+Oikos
+Ornithological Applications
+PLOS Biology
+PLOS Computational Biology
+PLOS Genetics
+PLOS Neglected Tropical Diseases
+PLOS ONE
+PLOS Pathogens
+Palaeontology
+Paleobiology
 Papers in Palaeontology
 PeerJ
-Evolution Letters
-PLOS Computational Biology
-Journal of the Royal Society Interface
-PLOS Biology
-Genome Biology and Evolution
-Communications Biology
-Nature Ecology & Evolution
-Journal of Experimental Botany
-Oecologia
-Toxicological Sciences
-Frontiers in Plant Science
-Frontiers in Ecology and Evolution
-Biological Solutions and Evidence
-Conservation Genetics
-Behavioral Ecology and Sociobiology
-Journal of Systematics and Evolution
-Ornithological Applications
-ZooKeys
 People and Nature
-Environmental DNA
-The Journal of Clinical Endocrinology & Metabolism
-JAMIA Open
-The Plant Cell
-Animal Behaviour
-PLOS Neglected Tropical Diseases
-G3: Genes, Genomes, Genetics
-Frontiers in Marine Science
-Wildlife Biology
-Tree Genetics & Genomes
-Limnology and Oceanography Letters
-Frontiers in Genetics
-PLOS Pathogens
-Zootaxa
+Philosophical Transactions of the Royal Society B
+Proceedings of the National Academy of Sciences of the United States of America
+Proceedings of the Royal Society B
+Proceedings of the Royal Society B: Biological Sciences
+Royal Society Open Science
+Science Advances
+Scientific Data
+Scientific Reports
+Systematic Biology
+Systematic Botany
 Systematic Entomology
+The American Naturalist
+The Journal of Clinical Endocrinology & Metabolism
+The Plant Cell
+Toxicological Sciences
+Tree Genetics & Genomes
+Wildlife Biology
+ZooKeys
+Zootaxa
+eLife

@@ -86,12 +86,12 @@ async def search_doi_in_dryad(session: aiohttp.ClientSession, doi: str,
 
 async def search_journal_in_dryad(session: aiohttp.ClientSession, journal: str,
                                   since: str):
-    headers = await get_api_token()
     results = list()
     output_json = journal.replace(' ', '_') + f'.{YEAR}.result.json'
     if Path(output_json).exists():
         log.info(f'{journal} already searched.')
         return ''
+    headers = await get_api_token()
     count_have_tree = 0
     max_per_page = 100
     try_search_result = await search_in_dryad(session, headers, journal, page=1,

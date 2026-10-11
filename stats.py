@@ -7,7 +7,11 @@ total = [0] * 4
 result_jsons = Path('.').glob('*.result.json')
 for result_file in result_jsons:
     input_json = Path(result_file.name.removesuffix('.result.json')+'.json')
-    data = json.load(open(result_file, 'r'))
+    try:
+        data = json.load(open(result_file, 'r'))
+    except Exception:
+        print(input_json)
+        raise
     if not input_json.exists():
         data2 = json.load(open(result_file, 'r'))
         have_tree_paper = len([i for i in data2 if len(i['tree_files']) != 0])

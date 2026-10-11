@@ -33,6 +33,9 @@ def main():
             total[journal_name][0] += 1
             # in case of doi from dyrad by 'by_journal.py'
             doi = get_doi(record['doi'])
+            if doi == '' and 'dyrad' in record['author']:
+                doi = get_doi(record['author'])
+                log.info(f'Get doi {doi} from author info (dyrad)')
             if len(doi) != 0:
                 total[journal_name][1] += 1
                 if doi in doi_list:
