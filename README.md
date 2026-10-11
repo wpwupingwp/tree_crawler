@@ -12,7 +12,8 @@ get new taxon value.
 - import to database
  
   - Use `plant_tree_db`'s  `local_batch_submit.py`. Cost hours since it mimics
-  submit via web requests.
+  submit via web requests. Remember to modify _views.py_ 'todo: modify to batch submit'
+  line.
 - integrated with treebase
   - export database
     - See `crawl_out_for_draw.ipynb`
